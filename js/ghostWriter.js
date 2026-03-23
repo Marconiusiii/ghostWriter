@@ -21,26 +21,46 @@
     const audioContext = new AudioContextClass();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
+    const vibratoOscillator = audioContext.createOscillator();
+    const vibratoGain = audioContext.createGain();
     const now = audioContext.currentTime;
-    const baseFrequency = 260 + Math.random() * 180;
-    const wobbleOne = baseFrequency + 120 + Math.random() * 140;
-    const wobbleTwo = baseFrequency - 80 + Math.random() * 60;
+    const duration = 0.6 + Math.random() * 0.45;
+    const baseFrequency = 190 + Math.random() * 340;
+    const wobbleOne = 220 + Math.random() * 520;
+    const wobbleTwo = 150 + Math.random() * 320;
+    const wobbleThree = 180 + Math.random() * 460;
+    const vibratoRate = 4.2 + Math.random() * 5.4;
+    const vibratoDepth = 8 + Math.random() * 22;
+    const attackLevel = 0.02 + Math.random() * 0.035;
+    const decayLevel = 0.008 + Math.random() * 0.018;
 
     oscillator.type = "sine";
+    vibratoOscillator.type = Math.random() > 0.5 ? "sine" : "triangle";
+
     oscillator.frequency.setValueAtTime(baseFrequency, now);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(140, wobbleOne), now + 0.18);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleTwo), now + 0.42);
-    oscillator.frequency.exponentialRampToValueAtTime(baseFrequency + 40, now + 0.7);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleOne), now + duration * 0.24);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(110, wobbleTwo), now + duration * 0.57);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleThree), now + duration * 0.84);
 
     gainNode.gain.setValueAtTime(0.0001, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.04, now + 0.05);
-    gainNode.gain.exponentialRampToValueAtTime(0.02, now + 0.36);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+    gainNode.gain.exponentialRampToValueAtTime(attackLevel, now + duration * 0.08);
+    gainNode.gain.exponentialRampToValueAtTime(decayLevel, now + duration * 0.58);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
+    vibratoOscillator.frequency.setValueAtTime(vibratoRate, now);
+    vibratoGain.gain.setValueAtTime(vibratoDepth, now);
+    vibratoGain.gain.linearRampToValueAtTime(vibratoDepth * 0.65, now + duration);
+
+    vibratoOscillator.connect(vibratoGain);
+    vibratoGain.connect(oscillator.frequency);
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
+
     oscillator.start(now);
-    oscillator.stop(now + 0.75);
+    vibratoOscillator.start(now);
+    oscillator.stop(now + duration);
+    vibratoOscillator.stop(now + duration);
+
     oscillator.addEventListener("ended", function () {
       audioContext.close();
     });
