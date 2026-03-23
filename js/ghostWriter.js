@@ -12,6 +12,40 @@
   let isRenderingFromBlur = false;
   let suppressBlurRender = false;
 
+  function playRenderSound() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return;
+    }
+
+    const audioContext = new AudioContextClass();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const now = audioContext.currentTime;
+    const baseFrequency = 260 + Math.random() * 180;
+    const wobbleOne = baseFrequency + 120 + Math.random() * 140;
+    const wobbleTwo = baseFrequency - 80 + Math.random() * 60;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(baseFrequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(140, wobbleOne), now + 0.18);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleTwo), now + 0.42);
+    oscillator.frequency.exponentialRampToValueAtTime(baseFrequency + 40, now + 0.7);
+
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.04, now + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.02, now + 0.36);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.72);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.75);
+    oscillator.addEventListener("ended", function () {
+      audioContext.close();
+    });
+  }
+
   function escapeHtml(value) {
     return value
       .replace(/&/g, "&amp;")
@@ -195,24 +229,36 @@
       return sourceText;
     }
 
-    const intensity = Math.min(3, Math.floor(words.length / 70) + ghostPasses);
+    const interactionLevel = ghostPasses + 1;
+    const intensity = Math.min(4, Math.floor(interactionLevel / 3) + Math.floor(words.length / 140));
     let hauntedWords = words.slice();
 
-    hauntedWords = transposeWords(hauntedWords);
+    if (Math.random() < Math.min(0.2 + interactionLevel * 0.06, 0.75)) {
+      hauntedWords = transposeWords(hauntedWords);
+    }
 
-    if (intensity > 1) {
+    if (intensity > 1 && Math.random() < 0.35) {
       hauntedWords = duplicateWord(hauntedWords);
     }
 
-    if (intensity > 2) {
+    if (intensity > 2 && Math.random() < 0.22) {
       hauntedWords = addGhostWord(hauntedWords);
+    }
+
+    if (intensity > 3 && Math.random() < 0.28) {
+      hauntedWords = transposeWords(hauntedWords);
     }
 
     return rebuildText(sourceText, hauntedWords);
   }
 
   function setStatus(message) {
-    statusMessage.textContent = message;
+    if (statusMessage) {
+      statusMessage.textContent = "";
+      window.setTimeout(function () {
+        statusMessage.textContent = message;
+      }, 25);
+    }
   }
 
   function renderDraft(shouldHaunt) {
@@ -225,7 +271,7 @@
     if (previewChanged) {
       writerInput.value = nextText;
       ghostPasses += 1;
-      setStatus("The ghost disturbed the draft while rendering the preview.");
+      setStatus("Rendered output updated.");
     } else if (isRenderingFromBlur) {
       setStatus("Rendered output updated after leaving the editor.");
     } else {
@@ -247,6 +293,7 @@
 
   renderButton.addEventListener("click", function () {
     isRenderingFromBlur = false;
+    playRenderSound();
     renderDraft(true);
     renderedOutput.focus();
   });
