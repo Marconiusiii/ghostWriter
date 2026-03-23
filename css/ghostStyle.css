@@ -11,6 +11,21 @@
   --shadow: rgba(31, 27, 24, 0.12);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page-bg: #13100f;
+    --panel-bg: #1c1816;
+    --accent: #b7d7c9;
+    --accent-soft: #2b342f;
+    --border: #6f665d;
+    --text: #f2ebe1;
+    --muted: #d1c4b8;
+    --focus: #f28d49;
+    --shadow: rgba(0, 0, 0, 0.38);
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -177,6 +192,31 @@ dialog:focus-visible {
   padding: 0.08rem 0.3rem;
   border-radius: 0.25rem;
   background: #ece4d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(circle at top, rgba(90, 107, 98, 0.14), transparent 38%),
+      linear-gradient(180deg, #171311 0%, var(--page-bg) 100%);
+  }
+
+  textarea {
+    background: #141110;
+    color: var(--text);
+  }
+
+  #renderedOutput {
+    background: rgba(18, 15, 14, 0.9);
+  }
+
+  #renderedOutput a {
+    color: #8dc2ff;
+  }
+
+  #renderedOutput code {
+    background: #312926;
+  }
 }
 
 dialog {
