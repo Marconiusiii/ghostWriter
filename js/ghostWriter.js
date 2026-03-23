@@ -359,6 +359,72 @@
     }
   }
 
+  function handleMarkdownListContinuation(event) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const selectionStart = writerInput.selectionStart;
+    const selectionEnd = writerInput.selectionEnd;
+    if (selectionStart !== selectionEnd) {
+      return;
+    }
+
+    const value = writerInput.value;
+    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const lineEndIndex = value.indexOf("\n", selectionStart);
+    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+    const currentLine = value.slice(lineStart, lineEnd);
+    const beforeCursor = value.slice(0, selectionStart);
+    const afterCursor = value.slice(selectionEnd);
+    const unorderedMatch = currentLine.match(/^([ \t]*)([-*])(\s+)(.*)$/);
+    const orderedMatch = currentLine.match(/^([ \t]*)(\d+)\.(\s+)(.*)$/);
+    let nextValue = value;
+    let caretPosition = selectionStart;
+
+    if (!unorderedMatch && !orderedMatch) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (unorderedMatch) {
+      const indent = unorderedMatch[1];
+      const marker = unorderedMatch[2];
+      const spacing = unorderedMatch[3];
+      const content = unorderedMatch[4];
+
+      if (!content.trim()) {
+        nextValue = value.slice(0, lineStart) + value.slice(lineEnd);
+        caretPosition = lineStart;
+      } else {
+        const nextPrefix = "\n" + indent + marker + spacing;
+        nextValue = beforeCursor + nextPrefix + afterCursor;
+        caretPosition = selectionStart + nextPrefix.length;
+      }
+    }
+
+    if (orderedMatch) {
+      const indent = orderedMatch[1];
+      const number = Number(orderedMatch[2]);
+      const spacing = orderedMatch[3];
+      const content = orderedMatch[4];
+
+      if (!content.trim()) {
+        nextValue = value.slice(0, lineStart) + value.slice(lineEnd);
+        caretPosition = lineStart;
+      } else {
+        const nextPrefix = "\n" + indent + String(number + 1) + "." + spacing;
+        nextValue = beforeCursor + nextPrefix + afterCursor;
+        caretPosition = selectionStart + nextPrefix.length;
+      }
+    }
+
+    writerInput.value = nextValue;
+    writerInput.selectionStart = caretPosition;
+    writerInput.selectionEnd = caretPosition;
+  }
+
   function saveFile(filename, text, type) {
     const blob = new Blob([text], { type: type });
     const url = URL.createObjectURL(blob);
@@ -377,6 +443,8 @@
     renderDraft(true);
     renderedOutput.focus();
   });
+
+  writerInput.addEventListener("keydown", handleMarkdownListContinuation);
 
   renderButton.addEventListener("mousedown", function () {
     suppressBlurRender = true;
