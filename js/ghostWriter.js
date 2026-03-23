@@ -252,20 +252,36 @@
     const interactionLevel = ghostPasses + 1;
     const intensity = Math.min(4, Math.floor(interactionLevel / 3) + Math.floor(words.length / 140));
     let hauntedWords = words.slice();
+    let hasChanged = false;
 
-    if (Math.random() < Math.min(0.2 + interactionLevel * 0.06, 0.75)) {
+    if (interactionLevel < 3) {
+      if (words.length > 10 && Math.random() < 0.35) {
+        hauntedWords = duplicateWord(hauntedWords);
+      } else {
+        hauntedWords = transposeWords(hauntedWords);
+      }
+      hasChanged = true;
+    } else if (Math.random() < Math.min(0.35 + interactionLevel * 0.06, 0.85)) {
       hauntedWords = transposeWords(hauntedWords);
+      hasChanged = true;
     }
 
     if (intensity > 1 && Math.random() < 0.35) {
       hauntedWords = duplicateWord(hauntedWords);
+      hasChanged = true;
     }
 
     if (intensity > 2 && Math.random() < 0.22) {
       hauntedWords = addGhostWord(hauntedWords);
+      hasChanged = true;
     }
 
     if (intensity > 3 && Math.random() < 0.28) {
+      hauntedWords = transposeWords(hauntedWords);
+      hasChanged = true;
+    }
+
+    if (!hasChanged) {
       hauntedWords = transposeWords(hauntedWords);
     }
 
