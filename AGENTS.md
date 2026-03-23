@@ -9,12 +9,12 @@
   1. Current state assessment
   2. Proposed plan
   3. Exact files that would be touched
-- Wait for the user to reply exactly: `APPROVE CHANGES`
+- Wait for the user to reply exactly: `Approved`
 - If that exact approval is not given, remain read-only.
 
 ## Response Formatting Rules
 - Every response must begin with exactly one H1 heading.
-- Use proper heading hierarchy: H1 -> H2 -> H3, no skipped levels.
+- Use proper heading level information hierarchy after the first h1 at the top of the response.
 - Do not use bold, italics, or underline formatting.
 - Keep formatting consistent across the full response.
 
@@ -22,6 +22,8 @@
 - Never revert unrelated changes.
 - Never run destructive commands unless explicitly requested.
 - If scope is ambiguous, ask a clarifying question and do not edit anything.
+- Never run git add, git commit, or git push.
+- Provide a clear, plain-language commit message under a heading with each update to the code.
 
 ## When Asked for Review
 - Prioritize findings first: bugs, risks, regressions, missing tests.

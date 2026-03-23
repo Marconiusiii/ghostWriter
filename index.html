@@ -4,17 +4,59 @@
 <title>Ghost Writer</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" type="text/css" href="https://marconius.com/fun/ghostWriter/css/ghostStyle.css">
+<link rel="stylesheet" type="text/css" href="css/ghostStyle.css">
 <link rel="canonical" href="https://marconius.com/fun/ghostWriter/">
-
-
 </head>
 <body>
 <main>
 <h1>Ghost Writer</h1>
+<p id="pageIntro">Write in plain text or markdown, then use Render Output to turn your draft into navigable HTML. After you leave the editor and move through the page, the ghost may start tampering with what you wrote.</p>
+<button type="button" id="helpButton" aria-haspopup="dialog" aria-controls="markdownHelp">Markdown help for beginners</button>
 
+<section class="editor-panel" aria-labelledby="writerHeading">
+<h2 id="writerHeading">Draft your text</h2>
+<label for="writerInput">Markdown editor</label>
+<p id="writerHint">Use the editor to write notes, lists, links, and headings. The ghost only interferes after you render your work or leave the editor.</p>
+<textarea id="writerInput" name="writerInput" rows="16" aria-describedby="writerHint"># Welcome to Ghost Writer
 
+Try writing a short note here.
 
+- Add a list item
+- Add another one
+
+Visit [Marconius](https://marconius.com/) for more projects.</textarea>
+</section>
+
+<div class="actions" aria-label="Editor actions">
+<button type="button" id="renderButton">Render Output</button>
+<button type="button" id="downloadMarkdown">Download Markdown</button>
+<button type="button" id="downloadText">Download Text</button>
+</div>
+
+<section class="output-panel" aria-labelledby="outputHeading">
+<h2 id="outputHeading">Rendered output</h2>
+<p id="outputHint">This area renders your draft as real HTML that can be navigated with a keyboard or screen reader.</p>
+<div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+<div id="renderedOutput" tabindex="-1" aria-describedby="outputHint"></div>
+</section>
+
+<dialog id="markdownHelp" aria-labelledby="dialogTitle" aria-describedby="dialogDescription">
+<form method="dialog" class="dialog-actions">
+<button type="submit" aria-label="Close markdown help">Close</button>
+</form>
+<h2 id="dialogTitle">Markdown basics</h2>
+<p id="dialogDescription">Ghost Writer accepts plain text, but these common markdown patterns can help you structure your notes.</p>
+<ul>
+<li><code># Heading 1</code></li>
+<li><code>## Heading 2</code></li>
+<li><code>- List item</code></li>
+<li><code>1. Numbered item</code></li>
+<li><code>[Link text](https://example.com)</code></li>
+<li><code>**bold**</code> and <code>*italic*</code></li>
+<li><code>`inline code`</code></li>
+</ul>
+</dialog>
 </main>
+<script src="js/ghostWriter.js"></script>
 </body>
 </html>
