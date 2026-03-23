@@ -166,6 +166,40 @@
     return fragments.join("");
   }
 
+  function createDriftMarkup(html) {
+    let driftIndex = 0;
+
+    return html.replace(/(^|>)([^<]+)(?=<|$)/g, function (match, prefix, text) {
+      const pieces = text.split(/(\s+)/);
+      const wrappedText = pieces
+        .map(function (piece) {
+          if (!piece.trim()) {
+            return piece;
+          }
+
+          const driftX = ((Math.random() * 1.6) - 0.8).toFixed(2) + "rem";
+          const driftY = ((Math.random() * 1.2) - 0.6).toFixed(2) + "rem";
+          const driftRotate = ((Math.random() * 4) - 2).toFixed(2) + "deg";
+          const markup = '<span class="drift-word" style="--drift-index:' +
+            driftIndex +
+            ";--drift-x:" +
+            driftX +
+            ";--drift-y:" +
+            driftY +
+            ";--drift-rotate:" +
+            driftRotate +
+            ';">' +
+            piece +
+            "</span>";
+          driftIndex += 1;
+          return markup;
+        })
+        .join("");
+
+      return prefix + wrappedText;
+    });
+  }
+
   function extractWords(text) {
     return text.match(/\b[\w']+\b/g) || [];
   }
@@ -301,8 +335,18 @@
     const sourceText = writerInput.value;
     const nextText = shouldHaunt ? hauntText(sourceText) : sourceText;
     const previewChanged = nextText !== sourceText;
+    const renderedHtml = markdownToHtml(nextText);
 
-    renderedOutput.innerHTML = markdownToHtml(nextText);
+    renderedOutput.classList.remove("is-shifting");
+    renderedOutput.innerHTML = createDriftMarkup(renderedHtml);
+
+    window.requestAnimationFrame(function () {
+      renderedOutput.classList.add("is-shifting");
+      window.setTimeout(function () {
+        renderedOutput.classList.remove("is-shifting");
+        renderedOutput.innerHTML = renderedHtml;
+      }, 950);
+    });
 
     if (previewChanged) {
       writerInput.value = nextText;
