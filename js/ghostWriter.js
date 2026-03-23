@@ -7,6 +7,7 @@
   const statusMessage = document.getElementById("statusMessage");
   const helpButton = document.getElementById("helpButton");
   const markdownHelp = document.getElementById("markdownHelp");
+  const copyrightYear = document.getElementById("copyrightYear");
 
   let ghostPasses = 0;
   let isRenderingFromBlur = false;
@@ -505,6 +506,10 @@
       helpButton.focus();
     }
   });
+
+  if (copyrightYear) {
+    copyrightYear.textContent = String(new Date().getFullYear());
+  }
 
   renderDraft(false);
 })();
