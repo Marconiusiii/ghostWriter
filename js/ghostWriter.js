@@ -1,18 +1,22 @@
 (function () {
   const writerInput = document.getElementById("writerInput");
+  const indentButton = document.getElementById("indentButton");
+  const outdentButton = document.getElementById("outdentButton");
   const renderButton = document.getElementById("renderButton");
   const spookinessToggle = document.getElementById("spookinessToggle");
   const downloadMarkdownButton = document.getElementById("downloadMarkdown");
   const downloadTextButton = document.getElementById("downloadText");
   const downloadHtmlButton = document.getElementById("downloadHtml");
   const renderedOutput = document.getElementById("renderedOutput");
-  const outputPanel = document.querySelector(".output-panel");
+  const renderedOutputRegion = document.getElementById("renderedOutputRegion");
   const statusMessage = document.getElementById("statusMessage");
   const copyrightYear = document.getElementById("copyrightYear");
 
   let ghostPasses = 0;
   let isRenderingFromBlur = false;
   let suppressBlurRender = false;
+  let savedSelectionStart = 0;
+  let savedSelectionEnd = 0;
 
   function isSpookinessOn() {
     return !spookinessToggle || spookinessToggle.checked;
@@ -645,6 +649,71 @@
     });
   }
 
+  function saveSelectionRange() {
+    savedSelectionStart = writerInput.selectionStart;
+    savedSelectionEnd = writerInput.selectionEnd;
+  }
+
+  function getSelectedLineRange() {
+    const value = writerInput.value;
+    const start = savedSelectionStart;
+    const end = savedSelectionEnd;
+    const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+    let lineEnd = value.indexOf("\n", end);
+
+    if (lineEnd === -1) {
+      lineEnd = value.length;
+    }
+
+    return {
+      start: lineStart,
+      end: lineEnd
+    };
+  }
+
+  function calculateIndentLevel(line) {
+    return Math.floor(countIndent(line) / 2);
+  }
+
+  function applyIndentation(direction) {
+    const value = writerInput.value;
+    const range = getSelectedLineRange();
+    const selectedBlock = value.slice(range.start, range.end);
+    const lines = selectedBlock.split("\n");
+    let levelAnnouncement = 0;
+
+    const nextLines = lines.map(function (line) {
+      if (direction === "indent") {
+        levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel("  " + line));
+        return "  " + line;
+      }
+
+      if (/^[ \t]{2}/.test(line)) {
+        const updatedLine = line.replace(/^[ \t]{1,2}/, "");
+        levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel(updatedLine));
+        return updatedLine;
+      }
+
+      levelAnnouncement = Math.max(levelAnnouncement, 0);
+      return line.replace(/^\t/, "");
+    });
+
+    const nextBlock = nextLines.join("\n");
+    writerInput.value = value.slice(0, range.start) + nextBlock + value.slice(range.end);
+
+    const selectionLength = nextBlock.length;
+    writerInput.focus();
+    writerInput.selectionStart = range.start;
+    writerInput.selectionEnd = range.start + selectionLength;
+    saveSelectionRange();
+
+    if (direction === "indent") {
+      setStatus("Text indented " + String(levelAnnouncement) + " level" + (levelAnnouncement === 1 ? "." : "s."));
+    } else {
+      setStatus("Text outdented to level " + String(levelAnnouncement) + ".");
+    }
+  }
+
   function renderDraft(allowSpookyChanges) {
     const sourceText = writerInput.value;
     const shouldSpook = allowSpookyChanges && isSpookinessOn();
@@ -658,8 +727,6 @@
       writerInput.value = nextText;
       ghostPasses += 1;
       setStatus("Rendered output updated.");
-    } else if (isRenderingFromBlur) {
-      setStatus("Rendered output updated after leaving the editor.");
     } else {
       setStatus("Rendered output updated.");
     }
@@ -766,18 +833,31 @@
     isRenderingFromBlur = false;
     playRenderSound();
     renderDraft(true);
-    if (outputPanel) {
-      outputPanel.focus();
+    if (renderedOutputRegion) {
+      renderedOutputRegion.focus();
     }
   });
 
   writerInput.addEventListener("keydown", handleMarkdownListContinuation);
+  writerInput.addEventListener("select", saveSelectionRange);
+  writerInput.addEventListener("keyup", saveSelectionRange);
+  writerInput.addEventListener("click", saveSelectionRange);
+
+  indentButton.addEventListener("click", function () {
+    applyIndentation("indent");
+  });
+
+  outdentButton.addEventListener("click", function () {
+    applyIndentation("outdent");
+  });
 
   renderButton.addEventListener("mousedown", function () {
     suppressBlurRender = true;
   });
 
   writerInput.addEventListener("blur", function () {
+    saveSelectionRange();
+
     if (suppressBlurRender) {
       suppressBlurRender = false;
       return;
@@ -825,5 +905,6 @@
     copyrightYear.textContent = String(new Date().getFullYear());
   }
 
+  saveSelectionRange();
   renderDraft(false);
 })();

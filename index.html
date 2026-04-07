@@ -60,18 +60,22 @@ const note = "Ghost Writer";
 <textarea id="writerInput" name="writerInput" rows="16" ></textarea>
 </section>
 
-<div class="actions">
+<div class="actions" role="toolbar" aria-label="Editor controls">
+<button type="button" id="indentButton">Indent</button>
+<button type="button" id="outdentButton">Outdent</button>
+<button type="button" id="renderButton">Render Output</button>
 <input type="checkbox" id="spookinessToggle" checked>
 <label for="spookinessToggle">Spookiness</label>
-<button type="button" id="renderButton">Render Output</button>
 </div>
 
-<section class="output-panel" tabindex="0">
+<section class="output-panel">
 <h2 id="outputHeading">Rendered output</h2>
+<section id="renderedOutputRegion" aria-label="Rendered Output" tabindex="0">
 <div id="renderedOutput"></div>
 </section>
+</section>
 
-<div class="dlButtons">
+<div class="dlButtons" role="toolbar" aria-label="Download options">
 <button type="button" id="downloadMarkdown">Download Markdown</button>
 <button type="button" id="downloadText">Download Text</button>
 <button type="button" id="downloadHtml">Download HTML</button>
