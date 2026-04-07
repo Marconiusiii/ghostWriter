@@ -282,6 +282,23 @@ select:focus-visible,
   height: auto;
 }
 
+#renderedOutput input[type="checkbox"] {
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-right: 0.55rem;
+  accent-color: var(--accent);
+}
+
+#renderedOutput li.task-list-item {
+  list-style: none;
+  margin-left: -1.4rem;
+  padding-left: 0.25rem;
+}
+
+#renderedOutput ul:has(> li.task-list-item) {
+  padding-left: 1.6rem;
+}
+
 #renderedOutput table {
   width: 100%;
   border-collapse: collapse;
