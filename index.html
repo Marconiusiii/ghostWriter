@@ -60,7 +60,7 @@ const note = "Ghost Writer";
 <textarea id="writerInput" name="writerInput" rows="16" ></textarea>
 </section>
 
-<div class="actions">
+<section aria-label="Editor Actions" class="actions">
 <label for="indentationMode">Indentation</label>
 <select id="indentationMode">
 <option value="tab">Tabs</option>
@@ -70,27 +70,28 @@ const note = "Ghost Writer";
 <button type="button" id="indentButton">Indent</button>
 <button type="button" id="outdentButton">Outdent</button>
 <button type="button" id="renderButton">Render Output</button>
-<input type="checkbox" id="spookinessToggle" checked>
+<input type="checkbox" id="spookinessToggle">
 <label for="spookinessToggle">Spookiness</label>
-</div>
+</section>
 
-<section class="output-panel">
+<div class="output-panel">
 <h2 id="outputHeading">Rendered output</h2>
 <section id="renderedOutputRegion" aria-label="Rendered Output" tabindex="0">
 <div id="renderedOutput"></div>
 </section>
-</section>
+</div>
 
-<div class="dlButtons">
+<section aria-label="Download Options" class="dlButtons">
 <button type="button" id="downloadMarkdown">Download Markdown</button>
 <button type="button" id="downloadText">Download Text</button>
 <button type="button" id="downloadHtml">Download HTML</button>
-</div>
+</section>
 </main>
 <footer>
 <p>&copy;<span id="copyrightYear"></span> - <a href="mailto:marco@marconius.com">Marco Salsiccia</a> v.1.0.1</p>
 </footer>
 <div id="statusMessage" role="status"></div>
+<script src="js/marked.js"></script>
 <script src="js/ghostWriter.js"></script>
 </body>
 </html>

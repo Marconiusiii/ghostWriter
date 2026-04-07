@@ -14,8 +14,6 @@
   const copyrightYear = document.getElementById("copyrightYear");
 
   let ghostPasses = 0;
-  let isRenderingFromBlur = false;
-  let suppressBlurRender = false;
   let savedSelectionStart = 0;
   let savedSelectionEnd = 0;
 
@@ -456,14 +454,23 @@
   }
 
   function markdownToHtml(markdown) {
-    const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-    const parsed = parseBlocks(lines, 0, 0).html;
-
-    if (!parsed) {
+    const source = markdown || "";
+    if (!source.trim()) {
       return "<p>Your rendered output will appear here.</p>";
     }
 
-    return parsed;
+    if (window.marked && typeof window.marked.parse === "function") {
+      return window.marked.parse(source, {
+        gfm: true,
+        breaks: false,
+        headerIds: false,
+        mangle: false
+      });
+    }
+
+    const lines = source.replace(/\r\n/g, "\n").split("\n");
+    const parsed = parseBlocks(lines, 0, 0).html;
+    return parsed || "<p>Your rendered output will appear here.</p>";
   }
 
   function createDriftMarkup(html) {
@@ -749,6 +756,26 @@
     }
   }
 
+  function handleIndentationShortcuts(event) {
+    const usesModifier = event.ctrlKey || event.metaKey;
+    if (!usesModifier || event.altKey) {
+      return;
+    }
+
+    if (event.key === "]") {
+      event.preventDefault();
+      saveSelectionRange();
+      applyIndentation("indent");
+      return;
+    }
+
+    if (event.key === "[") {
+      event.preventDefault();
+      saveSelectionRange();
+      applyIndentation("outdent");
+    }
+  }
+
   function renderDraft(allowSpookyChanges) {
     const sourceText = writerInput.value;
     const shouldSpook = allowSpookyChanges && isSpookinessOn();
@@ -865,7 +892,6 @@
   }
 
   renderButton.addEventListener("click", function () {
-    isRenderingFromBlur = false;
     playRenderSound();
     renderDraft(true);
     if (renderedOutputRegion) {
@@ -874,6 +900,7 @@
   });
 
   writerInput.addEventListener("keydown", handleMarkdownListContinuation);
+  writerInput.addEventListener("keydown", handleIndentationShortcuts);
   writerInput.addEventListener("select", saveSelectionRange);
   writerInput.addEventListener("keyup", saveSelectionRange);
   writerInput.addEventListener("click", saveSelectionRange);
