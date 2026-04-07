@@ -859,9 +859,6 @@
     if (previewChanged) {
       writerInput.value = nextText;
       ghostPasses += 1;
-      setStatus("Rendered output updated.");
-    } else {
-      setStatus("Rendered output updated.");
     }
   }
 
@@ -993,12 +990,6 @@
       insertExample(button.dataset.example || "", button.dataset.announcement || "Example added.");
     });
   });
-
-  if (spookinessToggle) {
-    spookinessToggle.addEventListener("change", function () {
-      setStatus(spookinessToggle.checked ? "Spookiness on." : "Spookiness off.");
-    });
-  }
 
   downloadMarkdownButton.addEventListener("click", function () {
     saveFile("ghost-writer-note.md", writerInput.value, "text/markdown;charset=utf-8");
