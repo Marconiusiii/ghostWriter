@@ -61,6 +61,12 @@ const note = "Ghost Writer";
 </section>
 
 <div class="actions" role="toolbar" aria-label="Editor controls">
+<label for="indentationMode">Indentation</label>
+<select id="indentationMode">
+<option value="tab">Tabs</option>
+<option value="spaces-2" selected>2 Spaces</option>
+<option value="spaces-4">4 Spaces</option>
+</select>
 <button type="button" id="indentButton">Indent</button>
 <button type="button" id="outdentButton">Outdent</button>
 <button type="button" id="renderButton">Render Output</button>

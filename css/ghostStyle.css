@@ -90,7 +90,8 @@ li {
 }
 
 label,
-button {
+button,
+select {
   font: inherit;
 }
 
@@ -131,6 +132,10 @@ textarea {
   margin-bottom: 0;
 }
 
+.actions label[for="indentationMode"] {
+  margin-bottom: 0;
+}
+
 button {
   padding: 0.8rem 1.1rem;
   border: 1px solid var(--accent);
@@ -138,6 +143,14 @@ button {
   background: var(--accent);
   color: #fffaf3;
   cursor: pointer;
+}
+
+.actions select {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--text);
 }
 
 #helpButton,
@@ -188,6 +201,7 @@ button:focus-visible {
 
 textarea:focus-visible,
 button:focus-visible,
+select:focus-visible,
 #renderedOutputRegion:focus-visible,
 .actions input[type="checkbox"]:focus-visible,
 .reference-panel summary:focus-visible {

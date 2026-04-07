@@ -1,5 +1,6 @@
 (function () {
   const writerInput = document.getElementById("writerInput");
+  const indentationMode = document.getElementById("indentationMode");
   const indentButton = document.getElementById("indentButton");
   const outdentButton = document.getElementById("outdentButton");
   const renderButton = document.getElementById("renderButton");
@@ -654,6 +655,22 @@
     savedSelectionEnd = writerInput.selectionEnd;
   }
 
+  function getIndentUnit() {
+    if (!indentationMode) {
+      return "  ";
+    }
+
+    if (indentationMode.value === "tab") {
+      return "\t";
+    }
+
+    if (indentationMode.value === "spaces-4") {
+      return "    ";
+    }
+
+    return "  ";
+  }
+
   function getSelectedLineRange() {
     const value = writerInput.value;
     const start = savedSelectionStart;
@@ -672,7 +689,28 @@
   }
 
   function calculateIndentLevel(line) {
-    return Math.floor(countIndent(line) / 2);
+    const unit = getIndentUnit();
+    if (unit === "\t") {
+      const tabMatch = line.match(/^\t*/);
+      return tabMatch ? tabMatch[0].length : 0;
+    }
+
+    return Math.floor(countIndent(line) / unit.length);
+  }
+
+  function removeOneIndentLevel(line) {
+    const unit = getIndentUnit();
+
+    if (unit === "\t") {
+      return line.replace(/^\t/, "");
+    }
+
+    const unitPattern = new RegExp("^" + unit.replace(/ /g, "\\s"));
+    if (unitPattern.test(line)) {
+      return line.replace(unitPattern, "");
+    }
+
+    return line.replace(/^[ \t]{1,4}/, "");
   }
 
   function applyIndentation(direction) {
@@ -681,28 +719,25 @@
     const selectedBlock = value.slice(range.start, range.end);
     const lines = selectedBlock.split("\n");
     let levelAnnouncement = 0;
+    const indentUnit = getIndentUnit();
+    const levelVerb = direction === "indent" ? "indented" : "outdented to";
 
     const nextLines = lines.map(function (line) {
       if (direction === "indent") {
-        levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel("  " + line));
-        return "  " + line;
-      }
-
-      if (/^[ \t]{2}/.test(line)) {
-        const updatedLine = line.replace(/^[ \t]{1,2}/, "");
+        const updatedLine = indentUnit + line;
         levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel(updatedLine));
         return updatedLine;
       }
 
-      levelAnnouncement = Math.max(levelAnnouncement, 0);
-      return line.replace(/^\t/, "");
+      const updatedLine = removeOneIndentLevel(line);
+      levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel(updatedLine));
+      return updatedLine;
     });
 
     const nextBlock = nextLines.join("\n");
     writerInput.value = value.slice(0, range.start) + nextBlock + value.slice(range.end);
 
     const selectionLength = nextBlock.length;
-    writerInput.focus();
     writerInput.selectionStart = range.start;
     writerInput.selectionEnd = range.start + selectionLength;
     saveSelectionRange();
@@ -851,31 +886,8 @@
     applyIndentation("outdent");
   });
 
-  renderButton.addEventListener("mousedown", function () {
-    suppressBlurRender = true;
-  });
-
   writerInput.addEventListener("blur", function () {
     saveSelectionRange();
-
-    if (suppressBlurRender) {
-      suppressBlurRender = false;
-      return;
-    }
-
-    isRenderingFromBlur = true;
-    window.setTimeout(function () {
-      if (document.activeElement === renderButton) {
-        isRenderingFromBlur = false;
-        return;
-      }
-
-      if (document.activeElement !== writerInput) {
-        renderDraft(true);
-      }
-
-      isRenderingFromBlur = false;
-    }, 120);
   });
 
   if (spookinessToggle) {
