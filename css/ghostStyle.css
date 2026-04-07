@@ -182,16 +182,22 @@ button {
   margin-top: 1rem;
 }
 
-.reference-copy pre {
-  overflow-x: auto;
+.reference-copy code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.reference-example-list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.reference-example-list li {
+  margin: 0 0 0.55rem;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.7rem;
   background: rgba(255, 255, 255, 0.72);
-}
-
-.reference-copy code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 button:hover,
@@ -343,7 +349,7 @@ select:focus-visible,
     background: #312926;
   }
 
-  .reference-copy pre,
+  .reference-example-list li,
   #renderedOutput pre {
     background: rgba(28, 24, 22, 0.96);
   }
