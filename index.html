@@ -73,6 +73,20 @@
 </div>
 </details>
 
+<details class="indentation-panel">
+<summary>Indentation Controls</summary>
+<section aria-label="Indentation Controls" class="indentation-actions">
+<label for="indentationMode">Indentation</label>
+<select id="indentationMode">
+<option value="tab" selected>Tabs</option>
+<option value="spaces-2">2 Spaces</option>
+<option value="spaces-4">4 Spaces</option>
+</select>
+<button type="button" id="indentButton">Indent</button>
+<button type="button" id="outdentButton">Outdent</button>
+</section>
+</details>
+
 <section class="editor-panel">
 <h2 id="writerHeading">Draft your text</h2>
 <label for="writerInput">Markdown editor</label>
@@ -80,14 +94,6 @@
 </section>
 
 <section aria-label="Editor Actions" class="actions">
-<label for="indentationMode">Indentation</label>
-<select id="indentationMode">
-<option value="tab">Tabs</option>
-<option value="spaces-2" selected>2 Spaces</option>
-<option value="spaces-4">4 Spaces</option>
-</select>
-<button type="button" id="indentButton">Indent</button>
-<button type="button" id="outdentButton">Outdent</button>
 <button type="button" id="renderButton">Render Output</button>
 <input type="checkbox" id="spookinessToggle">
 <label for="spookinessToggle">Spookiness</label>

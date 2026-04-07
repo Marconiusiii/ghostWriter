@@ -76,7 +76,8 @@ li {
 
 .editor-panel,
 .output-panel,
-.reference-panel {
+.reference-panel,
+.indentation-panel {
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 0.9rem;
@@ -132,10 +133,6 @@ textarea {
   margin-bottom: 0;
 }
 
-.actions label[for="indentationMode"] {
-  margin-bottom: 0;
-}
-
 button {
   padding: 0.8rem 1.1rem;
   border: 1px solid var(--accent);
@@ -145,7 +142,7 @@ button {
   cursor: pointer;
 }
 
-.actions select {
+.indentation-actions select {
   padding: 0.8rem 1rem;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -172,7 +169,18 @@ button {
   padding: 1rem;
 }
 
+.indentation-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
 .reference-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.indentation-panel summary {
   cursor: pointer;
   font-weight: 700;
   color: var(--accent);
@@ -180,6 +188,18 @@ button {
 
 .reference-copy {
   margin-top: 1rem;
+}
+
+.indentation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.indentation-actions label[for="indentationMode"] {
+  margin-bottom: 0;
 }
 
 .reference-copy code {
@@ -210,7 +230,8 @@ button:focus-visible,
 select:focus-visible,
 #renderedOutputRegion:focus-visible,
 .actions input[type="checkbox"]:focus-visible,
-.reference-panel summary:focus-visible {
+.reference-panel summary:focus-visible,
+.indentation-panel summary:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
@@ -399,6 +420,11 @@ select:focus-visible,
   }
 
   .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .indentation-actions {
     flex-direction: column;
     align-items: stretch;
   }

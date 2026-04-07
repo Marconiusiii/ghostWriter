@@ -662,6 +662,13 @@
     savedSelectionEnd = writerInput.selectionEnd;
   }
 
+  function setSelectionRange(start, end) {
+    writerInput.selectionStart = start;
+    writerInput.selectionEnd = end;
+    savedSelectionStart = start;
+    savedSelectionEnd = end;
+  }
+
   function getIndentUnit() {
     if (!indentationMode) {
       return "  ";
@@ -720,16 +727,21 @@
     return line.replace(/^[ \t]{1,4}/, "");
   }
 
-  function applyIndentation(direction) {
+  function applyIndentation(direction, options) {
+    const settings = options || {};
     const value = writerInput.value;
     const range = getSelectedLineRange();
     const selectedBlock = value.slice(range.start, range.end);
     const lines = selectedBlock.split("\n");
     let levelAnnouncement = 0;
     const indentUnit = getIndentUnit();
-    const levelVerb = direction === "indent" ? "indented" : "outdented to";
+    const hadSelection = savedSelectionStart !== savedSelectionEnd;
+    const originalStart = savedSelectionStart;
+    const originalEnd = savedSelectionEnd;
+    const lineOffset = Math.max(0, originalStart - range.start);
+    let removedFromFirstLine = 0;
 
-    const nextLines = lines.map(function (line) {
+    const nextLines = lines.map(function (line, index) {
       if (direction === "indent") {
         const updatedLine = indentUnit + line;
         levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel(updatedLine));
@@ -737,6 +749,9 @@
       }
 
       const updatedLine = removeOneIndentLevel(line);
+      if (index === 0) {
+        removedFromFirstLine = line.length - updatedLine.length;
+      }
       levelAnnouncement = Math.max(levelAnnouncement, calculateIndentLevel(updatedLine));
       return updatedLine;
     });
@@ -744,10 +759,22 @@
     const nextBlock = nextLines.join("\n");
     writerInput.value = value.slice(0, range.start) + nextBlock + value.slice(range.end);
 
-    const selectionLength = nextBlock.length;
-    writerInput.selectionStart = range.start;
-    writerInput.selectionEnd = range.start + selectionLength;
-    saveSelectionRange();
+    if (settings.preserveSelection) {
+      setSelectionRange(range.start, range.start + nextBlock.length);
+    } else if (hadSelection) {
+      const startDelta = direction === "indent"
+        ? indentUnit.length
+        : -Math.min(lineOffset, removedFromFirstLine);
+      const endDelta = nextBlock.length - selectedBlock.length;
+      const nextStart = Math.max(range.start, originalStart + startDelta);
+      const nextEnd = Math.max(nextStart, originalEnd + endDelta);
+      setSelectionRange(nextStart, nextEnd);
+    } else {
+      const nextCaret = direction === "indent"
+        ? originalStart + indentUnit.length
+        : Math.max(range.start, originalStart - Math.min(lineOffset, removedFromFirstLine));
+      setSelectionRange(nextCaret, nextCaret);
+    }
 
     if (direction === "indent") {
       setStatus("Text indented " + String(levelAnnouncement) + " level" + (levelAnnouncement === 1 ? "." : "s."));
@@ -765,14 +792,14 @@
     if (event.key === "]") {
       event.preventDefault();
       saveSelectionRange();
-      applyIndentation("indent");
+      applyIndentation("indent", { preserveSelection: false });
       return;
     }
 
     if (event.key === "[") {
       event.preventDefault();
       saveSelectionRange();
-      applyIndentation("outdent");
+      applyIndentation("outdent", { preserveSelection: false });
     }
   }
 
@@ -906,11 +933,11 @@
   writerInput.addEventListener("click", saveSelectionRange);
 
   indentButton.addEventListener("click", function () {
-    applyIndentation("indent");
+    applyIndentation("indent", { preserveSelection: true });
   });
 
   outdentButton.addEventListener("click", function () {
-    applyIndentation("outdent");
+    applyIndentation("outdent", { preserveSelection: true });
   });
 
   writerInput.addEventListener("blur", function () {
