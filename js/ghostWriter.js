@@ -1,17 +1,29 @@
 (function () {
   const writerInput = document.getElementById("writerInput");
   const renderButton = document.getElementById("renderButton");
+  const spookinessToggle = document.getElementById("spookinessToggle");
+  const spookinessLabel = document.getElementById("spookinessLabel");
   const downloadMarkdownButton = document.getElementById("downloadMarkdown");
   const downloadTextButton = document.getElementById("downloadText");
+  const downloadHtmlButton = document.getElementById("downloadHtml");
   const renderedOutput = document.getElementById("renderedOutput");
+  const outputPanel = document.querySelector(".output-panel");
   const statusMessage = document.getElementById("statusMessage");
-  const helpButton = document.getElementById("helpButton");
-  const markdownHelp = document.getElementById("markdownHelp");
   const copyrightYear = document.getElementById("copyrightYear");
 
   let ghostPasses = 0;
   let isRenderingFromBlur = false;
   let suppressBlurRender = false;
+
+  function isSpookinessOn() {
+    return !spookinessToggle || spookinessToggle.checked;
+  }
+
+  function syncSpookinessLabel() {
+    if (spookinessLabel) {
+      spookinessLabel.textContent = isSpookinessOn() ? "Spookiness on" : "Spookiness off";
+    }
+  }
 
   function playRenderSound() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -76,95 +88,384 @@
       .replace(/'/g, "&#39;");
   }
 
-  function parseInlineMarkdown(text) {
-    const escaped = escapeHtml(text);
+  function countIndent(line) {
+    const match = line.match(/^[ \t]*/);
+    if (!match) {
+      return 0;
+    }
 
-    return escaped
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>');
+    return match[0].replace(/\t/g, "  ").length;
   }
 
-  function convertParagraph(lines, startIndex) {
-    const collected = [];
-    let currentIndex = startIndex;
+  function isBlankLine(line) {
+    return !line.trim();
+  }
 
-    while (currentIndex < lines.length) {
-      const line = lines[currentIndex];
+  function isHorizontalRule(line) {
+    return /^ {0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line);
+  }
 
-      if (
-        !line.trim() ||
-        /^#{1,6}\s/.test(line) ||
-        /^[-*]\s+/.test(line) ||
-        /^\d+\.\s+/.test(line)
-      ) {
+  function splitTableRow(line) {
+    const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+    return trimmed.split("|").map(function (cell) {
+      return cell.trim();
+    });
+  }
+
+  function isTableDivider(line) {
+    const cells = splitTableRow(line);
+
+    if (!cells.length) {
+      return false;
+    }
+
+    return cells.every(function (cell) {
+      return /^:?-{3,}:?$/.test(cell);
+    });
+  }
+
+  function isListLine(line) {
+    return /^([ \t]*)([-*]|\d+\.)\s+/.test(line);
+  }
+
+  function isBlockquoteLine(line) {
+    return /^[ \t]*>\s?/.test(line);
+  }
+
+  function isFencedCodeStart(line) {
+    return /^[ \t]*```/.test(line);
+  }
+
+  function isTableStart(lines, index, baseIndent) {
+    if (index + 1 >= lines.length) {
+      return false;
+    }
+
+    const currentLine = lines[index];
+    const nextLine = lines[index + 1];
+
+    if (countIndent(currentLine) !== baseIndent || countIndent(nextLine) !== baseIndent) {
+      return false;
+    }
+
+    return currentLine.includes("|") && isTableDivider(nextLine);
+  }
+
+  function isBlockStart(line, baseIndent) {
+    if (isBlankLine(line)) {
+      return true;
+    }
+
+    const indent = countIndent(line);
+    if (indent < baseIndent) {
+      return true;
+    }
+
+    const trimmed = line.trim();
+
+    return (
+      indent === baseIndent &&
+      (
+        /^#{1,6}\s+/.test(trimmed) ||
+        isHorizontalRule(line) ||
+        isListLine(line) ||
+        isBlockquoteLine(line) ||
+        isFencedCodeStart(line)
+      )
+    );
+  }
+
+  function parseInlineMarkdown(text) {
+    const codePlaceholders = [];
+    let parsed = escapeHtml(text).replace(/`([^`]+)`/g, function (match, content) {
+      const placeholder = "__CODE_" + codePlaceholders.length + "__";
+      codePlaceholders.push("<code>" + content + "</code>");
+      return placeholder;
+    });
+
+    parsed = parsed.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">');
+    parsed = parsed.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
+    parsed = parsed.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    parsed = parsed.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+    parsed = parsed.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    parsed = parsed.replace(/_([^_]+)_/g, "<em>$1</em>");
+    parsed = parsed.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+
+    codePlaceholders.forEach(function (markup, index) {
+      parsed = parsed.replace("__CODE_" + index + "__", markup);
+    });
+
+    return parsed;
+  }
+
+  function parseParagraph(lines, startIndex, baseIndent) {
+    const parts = [];
+    let index = startIndex;
+
+    while (index < lines.length) {
+      const line = lines[index];
+      if (isBlankLine(line)) {
         break;
       }
 
-      collected.push(parseInlineMarkdown(line.trim()));
-      currentIndex += 1;
+      const indent = countIndent(line);
+      if (indent < baseIndent) {
+        break;
+      }
+
+      if (index !== startIndex && isBlockStart(line, baseIndent)) {
+        break;
+      }
+
+      parts.push(parseInlineMarkdown(line.trim()));
+      index += 1;
     }
 
     return {
-      html: "<p>" + collected.join(" ") + "</p>",
-      nextIndex: currentIndex
+      html: "<p>" + parts.join(" ") + "</p>",
+      nextIndex: index
+    };
+  }
+
+  function parseFencedCodeBlock(lines, startIndex, baseIndent) {
+    const openingLine = lines[startIndex].trim();
+    const language = openingLine.replace(/^```/, "").trim();
+    const codeLines = [];
+    let index = startIndex + 1;
+
+    while (index < lines.length && !/^[ \t]*```/.test(lines[index])) {
+      codeLines.push(lines[index]);
+      index += 1;
+    }
+
+    if (index < lines.length) {
+      index += 1;
+    }
+
+    const className = language ? ' class="language-' + escapeHtml(language) + '"' : "";
+
+    return {
+      html: "<pre><code" + className + ">" + escapeHtml(codeLines.join("\n")) + "</code></pre>",
+      nextIndex: index
+    };
+  }
+
+  function parseBlockquote(lines, startIndex, baseIndent) {
+    const quoteLines = [];
+    let index = startIndex;
+
+    while (index < lines.length) {
+      const line = lines[index];
+      if (isBlankLine(line)) {
+        quoteLines.push("");
+        index += 1;
+        continue;
+      }
+
+      if (countIndent(line) < baseIndent || !isBlockquoteLine(line)) {
+        break;
+      }
+
+      quoteLines.push(line.replace(/^[ \t]*>\s?/, ""));
+      index += 1;
+    }
+
+    return {
+      html: "<blockquote>" + parseBlocks(quoteLines, 0, 0).html + "</blockquote>",
+      nextIndex: index
+    };
+  }
+
+  function parseTable(lines, startIndex, baseIndent) {
+    const headerCells = splitTableRow(lines[startIndex]);
+    const alignmentCells = splitTableRow(lines[startIndex + 1]);
+    const alignments = alignmentCells.map(function (cell) {
+      if (/^:-+:$/.test(cell)) {
+        return "center";
+      }
+      if (/^-+:$/.test(cell)) {
+        return "right";
+      }
+      if (/^:-+$/.test(cell)) {
+        return "left";
+      }
+      return "";
+    });
+
+    const thead = "<thead><tr>" + headerCells.map(function (cell, index) {
+      const style = alignments[index] ? ' style="text-align:' + alignments[index] + '"' : "";
+      return "<th" + style + ">" + parseInlineMarkdown(cell) + "</th>";
+    }).join("") + "</tr></thead>";
+
+    const bodyRows = [];
+    let index = startIndex + 2;
+
+    while (index < lines.length) {
+      const line = lines[index];
+      if (isBlankLine(line) || countIndent(line) !== baseIndent || !line.includes("|")) {
+        break;
+      }
+
+      const cells = splitTableRow(line);
+      bodyRows.push("<tr>" + cells.map(function (cell, cellIndex) {
+        const style = alignments[cellIndex] ? ' style="text-align:' + alignments[cellIndex] + '"' : "";
+        return "<td" + style + ">" + parseInlineMarkdown(cell) + "</td>";
+      }).join("") + "</tr>");
+      index += 1;
+    }
+
+    return {
+      html: "<table>" + thead + "<tbody>" + bodyRows.join("") + "</tbody></table>",
+      nextIndex: index
+    };
+  }
+
+  function parseList(lines, startIndex, baseIndent) {
+    const match = lines[startIndex].slice(lines[startIndex].search(/\S|$/)).match(/^([-*])\s+|^(\d+)\.\s+/);
+    const listTag = match && match[1] ? "ul" : "ol";
+    const items = [];
+    let index = startIndex;
+
+    while (index < lines.length) {
+      const line = lines[index];
+      const indent = countIndent(line);
+
+      if (isBlankLine(line) || indent < baseIndent) {
+        break;
+      }
+
+      const trimmed = line.trim();
+      const itemMatch = listTag === "ul"
+        ? trimmed.match(/^([-*])\s+(.*)$/)
+        : trimmed.match(/^(\d+)\.\s+(.*)$/);
+
+      if (!itemMatch || indent !== baseIndent) {
+        break;
+      }
+
+      const itemBody = [];
+      const firstLineContent = itemMatch[2];
+
+      if (firstLineContent.trim()) {
+        itemBody.push(parseInlineMarkdown(firstLineContent.trim()));
+      }
+
+      index += 1;
+
+      while (index < lines.length) {
+        const nextLine = lines[index];
+        if (isBlankLine(nextLine)) {
+          index += 1;
+          break;
+        }
+
+        const nextIndent = countIndent(nextLine);
+        if (nextIndent <= baseIndent) {
+          break;
+        }
+
+        const nested = parseBlocks(lines, index, nextIndent);
+        itemBody.push(nested.html);
+        index = nested.nextIndex;
+      }
+
+      items.push("<li>" + itemBody.join("") + "</li>");
+    }
+
+    return {
+      html: "<" + listTag + ">" + items.join("") + "</" + listTag + ">",
+      nextIndex: index
+    };
+  }
+
+  function parseBlocks(lines, startIndex, baseIndent) {
+    const fragments = [];
+    let index = startIndex;
+
+    while (index < lines.length) {
+      const line = lines[index];
+
+      if (isBlankLine(line)) {
+        index += 1;
+        continue;
+      }
+
+      const indent = countIndent(line);
+      const trimmed = line.trim();
+
+      if (indent < baseIndent) {
+        break;
+      }
+
+      if (indent > baseIndent) {
+        const nested = parseBlocks(lines, index, indent);
+        fragments.push(nested.html);
+        index = nested.nextIndex;
+        continue;
+      }
+
+      if (/^#{1,6}\s+/.test(trimmed)) {
+        const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        const level = headingMatch[1].length;
+        fragments.push("<h" + level + ">" + parseInlineMarkdown(headingMatch[2]) + "</h" + level + ">");
+        index += 1;
+        continue;
+      }
+
+      if (isHorizontalRule(line)) {
+        fragments.push("<hr>");
+        index += 1;
+        continue;
+      }
+
+      if (isFencedCodeStart(line)) {
+        const fencedCode = parseFencedCodeBlock(lines, index, baseIndent);
+        fragments.push(fencedCode.html);
+        index = fencedCode.nextIndex;
+        continue;
+      }
+
+      if (isBlockquoteLine(line)) {
+        const blockquote = parseBlockquote(lines, index, baseIndent);
+        fragments.push(blockquote.html);
+        index = blockquote.nextIndex;
+        continue;
+      }
+
+      if (isTableStart(lines, index, baseIndent)) {
+        const table = parseTable(lines, index, baseIndent);
+        fragments.push(table.html);
+        index = table.nextIndex;
+        continue;
+      }
+
+      if (isListLine(line)) {
+        const list = parseList(lines, index, baseIndent);
+        fragments.push(list.html);
+        index = list.nextIndex;
+        continue;
+      }
+
+      const paragraph = parseParagraph(lines, index, baseIndent);
+      fragments.push(paragraph.html);
+      index = paragraph.nextIndex;
+    }
+
+    return {
+      html: fragments.join(""),
+      nextIndex: index
     };
   }
 
   function markdownToHtml(markdown) {
     const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-    const fragments = [];
+    const parsed = parseBlocks(lines, 0, 0).html;
 
-    for (let index = 0; index < lines.length; ) {
-      const line = lines[index];
-      const trimmed = line.trim();
-
-      if (!trimmed) {
-        index += 1;
-        continue;
-      }
-
-      const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
-      if (headingMatch) {
-        const level = headingMatch[1].length;
-        fragments.push(
-          "<h" + level + ">" + parseInlineMarkdown(headingMatch[2]) + "</h" + level + ">"
-        );
-        index += 1;
-        continue;
-      }
-
-      if (/^[-*]\s+/.test(trimmed)) {
-        const items = [];
-        while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
-          items.push("<li>" + parseInlineMarkdown(lines[index].trim().replace(/^[-*]\s+/, "")) + "</li>");
-          index += 1;
-        }
-        fragments.push("<ul>" + items.join("") + "</ul>");
-        continue;
-      }
-
-      if (/^\d+\.\s+/.test(trimmed)) {
-        const items = [];
-        while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
-          items.push("<li>" + parseInlineMarkdown(lines[index].trim().replace(/^\d+\.\s+/, "")) + "</li>");
-          index += 1;
-        }
-        fragments.push("<ol>" + items.join("") + "</ol>");
-        continue;
-      }
-
-      const paragraph = convertParagraph(lines, index);
-      fragments.push(paragraph.html);
-      index = paragraph.nextIndex;
-    }
-
-    if (!fragments.length) {
+    if (!parsed) {
       return "<p>Your rendered output will appear here.</p>";
     }
 
-    return fragments.join("");
+    return parsed;
   }
 
   function createDriftMarkup(html) {
@@ -172,30 +473,28 @@
 
     return html.replace(/(^|>)([^<]+)(?=<|$)/g, function (match, prefix, text) {
       const pieces = text.split(/(\s+)/);
-      const wrappedText = pieces
-        .map(function (piece) {
-          if (!piece.trim()) {
-            return piece;
-          }
+      const wrappedText = pieces.map(function (piece) {
+        if (!piece.trim()) {
+          return piece;
+        }
 
-          const driftX = ((Math.random() * 1.6) - 0.8).toFixed(2) + "rem";
-          const driftY = ((Math.random() * 1.2) - 0.6).toFixed(2) + "rem";
-          const driftRotate = ((Math.random() * 4) - 2).toFixed(2) + "deg";
-          const markup = '<span class="drift-word" style="--drift-index:' +
-            driftIndex +
-            ";--drift-x:" +
-            driftX +
-            ";--drift-y:" +
-            driftY +
-            ";--drift-rotate:" +
-            driftRotate +
-            ';">' +
-            piece +
-            "</span>";
-          driftIndex += 1;
-          return markup;
-        })
-        .join("");
+        const driftX = ((Math.random() * 1.6) - 0.8).toFixed(2) + "rem";
+        const driftY = ((Math.random() * 1.2) - 0.6).toFixed(2) + "rem";
+        const driftRotate = ((Math.random() * 4) - 2).toFixed(2) + "deg";
+        const markup = '<span class="drift-word" style="--drift-index:' +
+          driftIndex +
+          ";--drift-x:" +
+          driftX +
+          ";--drift-y:" +
+          driftY +
+          ";--drift-rotate:" +
+          driftRotate +
+          ';">' +
+          piece +
+          "</span>";
+        driftIndex += 1;
+        return markup;
+      }).join("");
 
       return prefix + wrappedText;
     });
@@ -324,21 +623,24 @@
   }
 
   function setStatus(message) {
-    if (statusMessage) {
-      statusMessage.textContent = "";
-      window.setTimeout(function () {
-        statusMessage.textContent = message;
-      }, 25);
+    if (!statusMessage) {
+      return;
     }
+
+    statusMessage.textContent = "";
+    window.setTimeout(function () {
+      statusMessage.textContent = message;
+    }, 25);
   }
 
-  function renderDraft(shouldHaunt) {
-    const sourceText = writerInput.value;
-    const nextText = shouldHaunt ? hauntText(sourceText) : sourceText;
-    const previewChanged = nextText !== sourceText;
-    const renderedHtml = markdownToHtml(nextText);
-
+  function updateRenderedOutput(renderedHtml, shouldAnimate) {
     renderedOutput.classList.remove("is-shifting");
+
+    if (!shouldAnimate) {
+      renderedOutput.innerHTML = renderedHtml;
+      return;
+    }
+
     renderedOutput.innerHTML = createDriftMarkup(renderedHtml);
 
     window.requestAnimationFrame(function () {
@@ -348,6 +650,16 @@
         renderedOutput.innerHTML = renderedHtml;
       }, 950);
     });
+  }
+
+  function renderDraft(allowSpookyChanges) {
+    const sourceText = writerInput.value;
+    const shouldSpook = allowSpookyChanges && isSpookinessOn();
+    const nextText = shouldSpook ? hauntText(sourceText) : sourceText;
+    const previewChanged = nextText !== sourceText;
+    const renderedHtml = markdownToHtml(nextText);
+
+    updateRenderedOutput(renderedHtml, shouldSpook);
 
     if (previewChanged) {
       writerInput.value = nextText;
@@ -367,6 +679,7 @@
 
     const selectionStart = writerInput.selectionStart;
     const selectionEnd = writerInput.selectionEnd;
+
     if (selectionStart !== selectionEnd) {
       return;
     }
@@ -438,11 +751,31 @@
     URL.revokeObjectURL(url);
   }
 
+  function buildHtmlDocument(title, bodyContent) {
+    return [
+      "<!DOCTYPE html>",
+      '<html lang="en">',
+      "<head>",
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+      "<title>" + escapeHtml(title) + "</title>",
+      "</head>",
+      "<body>",
+      "<main>",
+      bodyContent,
+      "</main>",
+      "</body>",
+      "</html>"
+    ].join("\n");
+  }
+
   renderButton.addEventListener("click", function () {
     isRenderingFromBlur = false;
     playRenderSound();
     renderDraft(true);
-    renderedOutput.focus();
+    if (outputPanel) {
+      outputPanel.focus();
+    }
   });
 
   writerInput.addEventListener("keydown", handleMarkdownListContinuation);
@@ -467,9 +800,17 @@
       if (document.activeElement !== writerInput) {
         renderDraft(true);
       }
+
       isRenderingFromBlur = false;
     }, 120);
   });
+
+  if (spookinessToggle) {
+    spookinessToggle.addEventListener("change", function () {
+      syncSpookinessLabel();
+      setStatus(spookinessToggle.checked ? "Spookiness on." : "Spookiness off.");
+    });
+  }
 
   downloadMarkdownButton.addEventListener("click", function () {
     saveFile("ghost-writer-note.md", writerInput.value, "text/markdown;charset=utf-8");
@@ -481,35 +822,17 @@
     setStatus("Downloaded text file.");
   });
 
-  helpButton.addEventListener("click", function () {
-    if (typeof markdownHelp.showModal === "function") {
-      markdownHelp.showModal();
-    }
-  });
-
-  markdownHelp.addEventListener("click", function (event) {
-    const bounds = markdownHelp.getBoundingClientRect();
-    const clickedOutside =
-      event.clientX < bounds.left ||
-      event.clientX > bounds.right ||
-      event.clientY < bounds.top ||
-      event.clientY > bounds.bottom;
-
-    if (clickedOutside) {
-      markdownHelp.close();
-    }
-  });
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && markdownHelp.open) {
-      markdownHelp.close();
-      helpButton.focus();
-    }
+  downloadHtmlButton.addEventListener("click", function () {
+    const renderedHtml = markdownToHtml(writerInput.value);
+    const htmlDocument = buildHtmlDocument("Ghost Writer Export", renderedHtml);
+    saveFile("ghost-writer-note.html", htmlDocument, "text/html;charset=utf-8");
+    setStatus("Downloaded HTML file.");
   });
 
   if (copyrightYear) {
     copyrightYear.textContent = String(new Date().getFullYear());
   }
 
+  syncSpookinessLabel();
   renderDraft(false);
 })();

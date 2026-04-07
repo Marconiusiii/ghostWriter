@@ -76,7 +76,7 @@ li {
 
 .editor-panel,
 .output-panel,
-dialog {
+.reference-panel {
   background: var(--panel-bg);
   border: 1px solid var(--border);
   border-radius: 0.9rem;
@@ -114,6 +114,7 @@ textarea {
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
   margin: 1rem 0;
 }
@@ -137,9 +138,52 @@ button {
 #helpButton,
 #downloadMarkdown,
 #downloadText,
-dialog button {
+#downloadHtml,
+.toggle-control {
   background: var(--accent-soft);
   color: var(--text);
+}
+
+.toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+}
+
+.toggle-control input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin: 0;
+}
+
+.reference-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.reference-panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.reference-copy {
+  margin-top: 1rem;
+}
+
+.reference-copy pre {
+  overflow-x: auto;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.reference-copy code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 button:hover,
@@ -150,7 +194,8 @@ button:focus-visible {
 textarea:focus-visible,
 button:focus-visible,
 #renderedOutput:focus-visible,
-dialog:focus-visible {
+.toggle-control:focus-within,
+.reference-panel summary:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
@@ -205,6 +250,45 @@ dialog:focus-visible {
   background: #ece4d6;
 }
 
+#renderedOutput pre,
+#renderedOutput table {
+  overflow-x: auto;
+}
+
+#renderedOutput pre {
+  padding: 0.9rem 1rem;
+  border-radius: 0.7rem;
+  background: rgba(236, 228, 214, 0.75);
+}
+
+#renderedOutput blockquote {
+  margin-inline: 0;
+  padding-inline: 1rem 0;
+  border-left: 0.3rem solid var(--border);
+  color: var(--muted);
+}
+
+#renderedOutput img {
+  max-width: 100%;
+  height: auto;
+}
+
+#renderedOutput table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#renderedOutput th,
+#renderedOutput td {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+#renderedOutput th {
+  background: rgba(215, 228, 221, 0.55);
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background:
@@ -228,21 +312,15 @@ dialog:focus-visible {
   #renderedOutput code {
     background: #312926;
   }
-}
 
-dialog {
-  width: min(40rem, calc(100vw - 2rem));
-  padding: 1rem 1rem 1.25rem;
-}
+  .reference-copy pre,
+  #renderedOutput pre {
+    background: rgba(28, 24, 22, 0.96);
+  }
 
-dialog::backdrop {
-  background: rgba(31, 27, 24, 0.55);
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0 0 0.5rem;
+  #renderedOutput th {
+    background: rgba(43, 52, 47, 0.82);
+  }
 }
 
 @keyframes ghostDrift {
@@ -286,9 +364,14 @@ dialog::backdrop {
 
   .actions {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .dlButtons {
     flex-direction: column;
+  }
+
+  .toggle-control {
+    justify-content: center;
   }
 }
