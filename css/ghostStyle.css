@@ -240,6 +240,19 @@ button {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+.reference-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.example-button {
+  margin-bottom: 0.75rem;
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
 .reference-example-list {
   margin: 0 0 1rem;
   padding: 0;
@@ -462,6 +475,10 @@ select:focus-visible,
   .indentation-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .reference-button-row {
+    flex-direction: column;
   }
 
   .dlButtons {

@@ -5,6 +5,7 @@
   const outdentButton = document.getElementById("outdentButton");
   const renderButton = document.getElementById("renderButton");
   const spookinessToggle = document.getElementById("spookinessToggle");
+  const exampleButtons = document.querySelectorAll(".example-button");
   const downloadMarkdownButton = document.getElementById("downloadMarkdown");
   const downloadTextButton = document.getElementById("downloadText");
   const downloadHtmlButton = document.getElementById("downloadHtml");
@@ -33,32 +34,56 @@
     const vibratoOscillator = audioContext.createOscillator();
     const vibratoGain = audioContext.createGain();
     const now = audioContext.currentTime;
-    const duration = 0.6 + Math.random() * 0.45;
-    const baseFrequency = 190 + Math.random() * 340;
-    const wobbleOne = 220 + Math.random() * 520;
-    const wobbleTwo = 150 + Math.random() * 320;
-    const wobbleThree = 180 + Math.random() * 460;
-    const vibratoRate = 4.2 + Math.random() * 5.4;
-    const vibratoDepth = 8 + Math.random() * 22;
-    const attackLevel = 0.02 + Math.random() * 0.035;
-    const decayLevel = 0.008 + Math.random() * 0.018;
+    const spooky = isSpookinessOn();
+    const duration = spooky
+      ? 1.05 + Math.random() * 0.75
+      : 0.78 + Math.random() * 0.38;
+    const baseFrequency = spooky
+      ? 170 + Math.random() * 300
+      : 210 + Math.random() * 320;
+    const wobbleOne = spooky
+      ? 300 + Math.random() * 560
+      : 260 + Math.random() * 420;
+    const wobbleTwo = spooky
+      ? 120 + Math.random() * 260
+      : 180 + Math.random() * 260;
+    const wobbleThree = spooky
+      ? 260 + Math.random() * 500
+      : 220 + Math.random() * 360;
+    const finalLift = spooky
+      ? 340 + Math.random() * 420
+      : 290 + Math.random() * 280;
+    const vibratoRate = spooky
+      ? 3.1 + Math.random() * 4.6
+      : 5.2 + Math.random() * 4.8;
+    const vibratoDepth = spooky
+      ? 16 + Math.random() * 34
+      : 18 + Math.random() * 26;
+    const attackLevel = spooky
+      ? 0.045 + Math.random() * 0.05
+      : 0.034 + Math.random() * 0.04;
+    const decayLevel = spooky
+      ? 0.02 + Math.random() * 0.028
+      : 0.014 + Math.random() * 0.018;
 
     oscillator.type = "sine";
     vibratoOscillator.type = Math.random() > 0.5 ? "sine" : "triangle";
 
     oscillator.frequency.setValueAtTime(baseFrequency, now);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleOne), now + duration * 0.24);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(110, wobbleTwo), now + duration * 0.57);
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleThree), now + duration * 0.84);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleOne), now + duration * (spooky ? 0.2 : 0.22));
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(110, wobbleTwo), now + duration * (spooky ? 0.48 : 0.52));
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(120, wobbleThree), now + duration * (spooky ? 0.76 : 0.78));
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(150, finalLift), now + duration * (spooky ? 0.96 : 0.92));
 
     gainNode.gain.setValueAtTime(0.0001, now);
-    gainNode.gain.exponentialRampToValueAtTime(attackLevel, now + duration * 0.08);
-    gainNode.gain.exponentialRampToValueAtTime(decayLevel, now + duration * 0.58);
+    gainNode.gain.exponentialRampToValueAtTime(attackLevel, now + duration * (spooky ? 0.09 : 0.07));
+    gainNode.gain.exponentialRampToValueAtTime(decayLevel, now + duration * (spooky ? 0.68 : 0.6));
     gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     vibratoOscillator.frequency.setValueAtTime(vibratoRate, now);
     vibratoGain.gain.setValueAtTime(vibratoDepth, now);
-    vibratoGain.gain.linearRampToValueAtTime(vibratoDepth * 0.65, now + duration);
+    vibratoGain.gain.linearRampToValueAtTime(vibratoDepth * (spooky ? 0.8 : 0.82), now + duration * 0.5);
+    vibratoGain.gain.linearRampToValueAtTime(vibratoDepth * (spooky ? 0.5 : 0.68), now + duration);
 
     vibratoOscillator.connect(vibratoGain);
     vibratoGain.connect(oscillator.frequency);
@@ -667,6 +692,27 @@
     savedSelectionEnd = end;
   }
 
+  function insertExample(exampleText, announcement) {
+    const normalizedExample = exampleText.replace(/\\n/g, "\n");
+    const value = writerInput.value;
+    const start = savedSelectionStart;
+    const end = savedSelectionEnd;
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
+    const needsTrailingBreak = after.length > 0 && !after.startsWith("\n");
+    const insertedText =
+      (needsLeadingBreak ? "\n" : "") +
+      normalizedExample +
+      (needsTrailingBreak ? "\n" : "");
+    const nextValue = before + insertedText + after;
+    const nextCaret = before.length + insertedText.length;
+
+    writerInput.value = nextValue;
+    setSelectionRange(nextCaret, nextCaret);
+    setStatus(announcement);
+  }
+
   function getIndentUnit() {
     if (!indentationMode) {
       return "  ";
@@ -940,6 +986,12 @@
 
   writerInput.addEventListener("blur", function () {
     saveSelectionRange();
+  });
+
+  exampleButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      insertExample(button.dataset.example || "", button.dataset.announcement || "Example added.");
+    });
   });
 
   if (spookinessToggle) {
