@@ -138,22 +138,12 @@ button {
 #helpButton,
 #downloadMarkdown,
 #downloadText,
-#downloadHtml,
-.toggle-control {
+#downloadHtml {
   background: var(--accent-soft);
   color: var(--text);
 }
 
-.toggle-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-}
-
-.toggle-control input {
+.actions input[type="checkbox"] {
   inline-size: 1rem;
   block-size: 1rem;
   margin: 0;
@@ -194,7 +184,7 @@ button:focus-visible {
 textarea:focus-visible,
 button:focus-visible,
 #renderedOutput:focus-visible,
-.toggle-control:focus-within,
+.actions input[type="checkbox"]:focus-visible,
 .reference-panel summary:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
@@ -369,9 +359,5 @@ button:focus-visible,
 
   .dlButtons {
     flex-direction: column;
-  }
-
-  .toggle-control {
-    justify-content: center;
   }
 }

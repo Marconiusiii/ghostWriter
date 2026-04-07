@@ -2,7 +2,6 @@
   const writerInput = document.getElementById("writerInput");
   const renderButton = document.getElementById("renderButton");
   const spookinessToggle = document.getElementById("spookinessToggle");
-  const spookinessLabel = document.getElementById("spookinessLabel");
   const downloadMarkdownButton = document.getElementById("downloadMarkdown");
   const downloadTextButton = document.getElementById("downloadText");
   const downloadHtmlButton = document.getElementById("downloadHtml");
@@ -17,12 +16,6 @@
 
   function isSpookinessOn() {
     return !spookinessToggle || spookinessToggle.checked;
-  }
-
-  function syncSpookinessLabel() {
-    if (spookinessLabel) {
-      spookinessLabel.textContent = isSpookinessOn() ? "Spookiness on" : "Spookiness off";
-    }
   }
 
   function playRenderSound() {
@@ -178,7 +171,7 @@
   function parseInlineMarkdown(text) {
     const codePlaceholders = [];
     let parsed = escapeHtml(text).replace(/`([^`]+)`/g, function (match, content) {
-      const placeholder = "__CODE_" + codePlaceholders.length + "__";
+      const placeholder = "%%CODE" + codePlaceholders.length + "%%";
       codePlaceholders.push("<code>" + content + "</code>");
       return placeholder;
     });
@@ -192,7 +185,7 @@
     parsed = parsed.replace(/~~([^~]+)~~/g, "<del>$1</del>");
 
     codePlaceholders.forEach(function (markup, index) {
-      parsed = parsed.replace("__CODE_" + index + "__", markup);
+      parsed = parsed.replace("%%CODE" + index + "%%", markup);
     });
 
     return parsed;
@@ -807,7 +800,6 @@
 
   if (spookinessToggle) {
     spookinessToggle.addEventListener("change", function () {
-      syncSpookinessLabel();
       setStatus(spookinessToggle.checked ? "Spookiness on." : "Spookiness off.");
     });
   }
@@ -833,6 +825,5 @@
     copyrightYear.textContent = String(new Date().getFullYear());
   }
 
-  syncSpookinessLabel();
   renderDraft(false);
 })();
