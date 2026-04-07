@@ -468,9 +468,7 @@
       });
     }
 
-    const lines = source.replace(/\r\n/g, "\n").split("\n");
-    const parsed = parseBlocks(lines, 0, 0).html;
-    return parsed || "<p>Your rendered output will appear here.</p>";
+    return "<p>Markdown parser unavailable.</p>";
   }
 
   function createDriftMarkup(html) {
