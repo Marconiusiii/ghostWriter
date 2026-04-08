@@ -103,6 +103,18 @@ h1 {
   font-size: clamp(2rem, 5vw, 3.5rem);
 }
 
+.site-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.site-logo {
+  width: clamp(2.5rem, 5vw, 3.5rem);
+  height: auto;
+  flex: 0 0 auto;
+}
+
 p,
 li {
   max-width: 68ch;
@@ -461,6 +473,10 @@ select:focus-visible,
 @media (max-width: 48rem) {
   main {
     padding: 1rem 0.75rem 2rem;
+  }
+
+  .site-heading {
+    gap: 0.65rem;
   }
 
   textarea {
