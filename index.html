@@ -32,6 +32,12 @@
 <h2>Markdown Help and Reference</h2>
 <div class="reference-copy">
 <p>Ghost Writer supports common markdown for everyday writing and richer documents. You can keep this section open while you type.</p>
+
+<h3>Paragraphs</h3>
+
+<p>Separate paragraphs with an empty line. Press Enter twice between ordinary blocks of text to render them as separate paragraphs. Pressing Enter once within ordinary text keeps it in the same paragraph.</p>
+<p>To start a new line within the same paragraph, end the preceding line with two spaces or a backslash, then press Enter. This creates a line break rather than a new paragraph.</p>
+<p>Headings, lists, and other Markdown blocks have their own rules. Blank lines around blocks help keep your source clear and avoid unintended formatting.</p>
 <h3>Headings</h3>
 <p>Headings use one to six number signs.</p>
 <button type="button" class="example-button" data-example="# Heading 1" data-announcement="Heading added.">Add heading</button>
@@ -42,7 +48,7 @@
 </ul>
 <h3>Lists</h3>
 <p>Use a dash or an asterisk for bullet lists. Numbered lists can start with any number, and pressing Enter continues the list automatically. Nested lists stay indented, and pressing Enter again on an empty list line ends the list.</p>
-<p>Nest a list by adding at least a 2-space indentation before the asterisk or dash.</p>
+<p>Indent a nested list to align its marker with the start of the parent item’s text. Use two spaces under <code>* </code>, three under <code>1. </code>, and four under <code>10. </code>.</p>
 <div class="reference-button-row">
 <button type="button" class="example-button" data-example="* First bullet\n* Second bullet" data-announcement="Unordered list added.">Add unordered list</button>
 <button type="button" class="example-button" data-example="1. First numbered item\n2. Second numbered item" data-announcement="Numbered list added.">Add numbered list</button>
@@ -117,6 +123,16 @@
 <h3>HTML</h3>
 <p>You can also write HTML directly in the editor when you need markup that markdown alone does not cover.</p>
 <button type="button" class="example-button" data-example="&lt;aside&gt;Helpful note written in HTML.&lt;/aside&gt;" data-announcement="HTML example added.">Add HTML</button>
+<h3>Indentation</h3>
+<p>Open Indentation Controls, choose tabs, two spaces, or four spaces, then use Indent or Outdent to change the current line or selected lines. In the editor, use Command+] and Command+[ on Mac, or Control+] and Control+[ on Windows and Linux.</p>
+<h3>Rendering and exports</h3>
+<p>Use Render Output to update the preview and move to the rendered result.</p>
+<p>Under Export, use Download Markdown to save your source for further editing. Download Plain Text saves readable text without Markdown formatting, keeping paragraphs, list items, and table contents. Code keeps its punctuation, indentation, and line breaks.</p>
+<p>Expand HTML to choose its settings, then use Download HTML to save a formatted document. Styled document is selected by default. Uncheck it to download a document without the ghostWriter colors and styling.</p>
+<p>Styled HTML uses ghostWriter’s Warm paper colors in light mode: a cream background, charcoal-brown text, forest-green headings, and deep-blue links. In dark mode, it uses Midnight colors: an almost-black brown background, ivory text, pale mint-green headings, and sky-blue links. Table headings have sage-green shading in light mode and dark-green shading in dark mode. Code appears on a beige or dark-brown background, and quotes have a gray-brown line beside them.</p>
+<p>Select Table of contents to include links to your headings. Expand Table of contents in the downloaded document and choose a heading to go to that section.</p>
+<h3>Spookiness</h3>
+<p>Spookiness changes words in your draft when you use Render Output and animates the preview. Leave it unchecked to render your text as written. Rendering plays a sound when browser audio is available, with either setting.</p>
 </div>
 </details>
 
@@ -153,11 +169,17 @@
 </section>
 </div>
 
-<section aria-label="Download Options" class="dlButtons">
+<div class="dlButtons">
+<h2>Export</h2>
 <button type="button" id="downloadMarkdown">Download Markdown</button>
-<button type="button" id="downloadText">Download Text</button>
+<button type="button" id="downloadText">Download Plain Text</button>
+<details class="html-export">
+<summary>HTML</summary>
+<label><input type="checkbox" id="styledHtml" checked> Styled document</label>
+<label><input type="checkbox" id="htmlContents"> Table of contents</label>
 <button type="button" id="downloadHtml">Download HTML</button>
-</section>
+</details>
+</div>
 </main>
 <footer>
 	<nav aria-label="Footer">
@@ -173,7 +195,7 @@
 		</ul>
 	</nav>
 
-<p>&copy;<span id="copyrightYear"></span> - <a href="mailto:marco@marconius.com">Marco Salsiccia</a> v.1.0.2</p>
+<p>&copy;<span id="copyrightYear"></span> - <a href="mailto:marco@marconius.com">Marco Salsiccia</a> v.1.1.0</p>
 </footer>
 <div id="statusMessage" role="status"></div>
 <script src="js/marked.js"></script>

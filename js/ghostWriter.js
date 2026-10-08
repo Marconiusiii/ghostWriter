@@ -118,366 +118,6 @@
     return match[0].replace(/\t/g, "  ").length;
   }
 
-  function isBlankLine(line) {
-    return !line.trim();
-  }
-
-  function isHorizontalRule(line) {
-    return /^ {0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line);
-  }
-
-  function splitTableRow(line) {
-    const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
-    return trimmed.split("|").map(function (cell) {
-      return cell.trim();
-    });
-  }
-
-  function isTableDivider(line) {
-    const cells = splitTableRow(line);
-
-    if (!cells.length) {
-      return false;
-    }
-
-    return cells.every(function (cell) {
-      return /^:?-{3,}:?$/.test(cell);
-    });
-  }
-
-  function isListLine(line) {
-    return /^([ \t]*)([-*]|\d+\.)\s+/.test(line);
-  }
-
-  function isBlockquoteLine(line) {
-    return /^[ \t]*>\s?/.test(line);
-  }
-
-  function isFencedCodeStart(line) {
-    return /^[ \t]*```/.test(line);
-  }
-
-  function isTableStart(lines, index, baseIndent) {
-    if (index + 1 >= lines.length) {
-      return false;
-    }
-
-    const currentLine = lines[index];
-    const nextLine = lines[index + 1];
-
-    if (countIndent(currentLine) !== baseIndent || countIndent(nextLine) !== baseIndent) {
-      return false;
-    }
-
-    return currentLine.includes("|") && isTableDivider(nextLine);
-  }
-
-  function isBlockStart(line, baseIndent) {
-    if (isBlankLine(line)) {
-      return true;
-    }
-
-    const indent = countIndent(line);
-    if (indent < baseIndent) {
-      return true;
-    }
-
-    const trimmed = line.trim();
-
-    return (
-      indent === baseIndent &&
-      (
-        /^#{1,6}\s+/.test(trimmed) ||
-        isHorizontalRule(line) ||
-        isListLine(line) ||
-        isBlockquoteLine(line) ||
-        isFencedCodeStart(line)
-      )
-    );
-  }
-
-  function parseInlineMarkdown(text) {
-    const codePlaceholders = [];
-    let parsed = escapeHtml(text).replace(/`([^`]+)`/g, function (match, content) {
-      const placeholder = "%%CODE" + codePlaceholders.length + "%%";
-      codePlaceholders.push("<code>" + content + "</code>");
-      return placeholder;
-    });
-
-    parsed = parsed.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">');
-    parsed = parsed.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
-    parsed = parsed.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    parsed = parsed.replace(/__([^_]+)__/g, "<strong>$1</strong>");
-    parsed = parsed.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-    parsed = parsed.replace(/_([^_]+)_/g, "<em>$1</em>");
-    parsed = parsed.replace(/~~([^~]+)~~/g, "<del>$1</del>");
-
-    codePlaceholders.forEach(function (markup, index) {
-      parsed = parsed.replace("%%CODE" + index + "%%", markup);
-    });
-
-    return parsed;
-  }
-
-  function parseParagraph(lines, startIndex, baseIndent) {
-    const parts = [];
-    let index = startIndex;
-
-    while (index < lines.length) {
-      const line = lines[index];
-      if (isBlankLine(line)) {
-        break;
-      }
-
-      const indent = countIndent(line);
-      if (indent < baseIndent) {
-        break;
-      }
-
-      if (index !== startIndex && isBlockStart(line, baseIndent)) {
-        break;
-      }
-
-      parts.push(parseInlineMarkdown(line.trim()));
-      index += 1;
-    }
-
-    return {
-      html: "<p>" + parts.join(" ") + "</p>",
-      nextIndex: index
-    };
-  }
-
-  function parseFencedCodeBlock(lines, startIndex, baseIndent) {
-    const openingLine = lines[startIndex].trim();
-    const language = openingLine.replace(/^```/, "").trim();
-    const codeLines = [];
-    let index = startIndex + 1;
-
-    while (index < lines.length && !/^[ \t]*```/.test(lines[index])) {
-      codeLines.push(lines[index]);
-      index += 1;
-    }
-
-    if (index < lines.length) {
-      index += 1;
-    }
-
-    const className = language ? ' class="language-' + escapeHtml(language) + '"' : "";
-
-    return {
-      html: "<pre><code" + className + ">" + escapeHtml(codeLines.join("\n")) + "</code></pre>",
-      nextIndex: index
-    };
-  }
-
-  function parseBlockquote(lines, startIndex, baseIndent) {
-    const quoteLines = [];
-    let index = startIndex;
-
-    while (index < lines.length) {
-      const line = lines[index];
-      if (isBlankLine(line)) {
-        quoteLines.push("");
-        index += 1;
-        continue;
-      }
-
-      if (countIndent(line) < baseIndent || !isBlockquoteLine(line)) {
-        break;
-      }
-
-      quoteLines.push(line.replace(/^[ \t]*>\s?/, ""));
-      index += 1;
-    }
-
-    return {
-      html: "<blockquote>" + parseBlocks(quoteLines, 0, 0).html + "</blockquote>",
-      nextIndex: index
-    };
-  }
-
-  function parseTable(lines, startIndex, baseIndent) {
-    const headerCells = splitTableRow(lines[startIndex]);
-    const alignmentCells = splitTableRow(lines[startIndex + 1]);
-    const alignments = alignmentCells.map(function (cell) {
-      if (/^:-+:$/.test(cell)) {
-        return "center";
-      }
-      if (/^-+:$/.test(cell)) {
-        return "right";
-      }
-      if (/^:-+$/.test(cell)) {
-        return "left";
-      }
-      return "";
-    });
-
-    const thead = "<thead><tr>" + headerCells.map(function (cell, index) {
-      const style = alignments[index] ? ' style="text-align:' + alignments[index] + '"' : "";
-      return "<th" + style + ">" + parseInlineMarkdown(cell) + "</th>";
-    }).join("") + "</tr></thead>";
-
-    const bodyRows = [];
-    let index = startIndex + 2;
-
-    while (index < lines.length) {
-      const line = lines[index];
-      if (isBlankLine(line) || countIndent(line) !== baseIndent || !line.includes("|")) {
-        break;
-      }
-
-      const cells = splitTableRow(line);
-      bodyRows.push("<tr>" + cells.map(function (cell, cellIndex) {
-        const style = alignments[cellIndex] ? ' style="text-align:' + alignments[cellIndex] + '"' : "";
-        return "<td" + style + ">" + parseInlineMarkdown(cell) + "</td>";
-      }).join("") + "</tr>");
-      index += 1;
-    }
-
-    return {
-      html: "<table>" + thead + "<tbody>" + bodyRows.join("") + "</tbody></table>",
-      nextIndex: index
-    };
-  }
-
-  function parseList(lines, startIndex, baseIndent) {
-    const match = lines[startIndex].slice(lines[startIndex].search(/\S|$/)).match(/^([-*])\s+|^(\d+)\.\s+/);
-    const listTag = match && match[1] ? "ul" : "ol";
-    const items = [];
-    let index = startIndex;
-
-    while (index < lines.length) {
-      const line = lines[index];
-      const indent = countIndent(line);
-
-      if (isBlankLine(line) || indent < baseIndent) {
-        break;
-      }
-
-      const trimmed = line.trim();
-      const itemMatch = listTag === "ul"
-        ? trimmed.match(/^([-*])\s+(.*)$/)
-        : trimmed.match(/^(\d+)\.\s+(.*)$/);
-
-      if (!itemMatch || indent !== baseIndent) {
-        break;
-      }
-
-      const itemBody = [];
-      const firstLineContent = itemMatch[2];
-
-      if (firstLineContent.trim()) {
-        itemBody.push(parseInlineMarkdown(firstLineContent.trim()));
-      }
-
-      index += 1;
-
-      while (index < lines.length) {
-        const nextLine = lines[index];
-        if (isBlankLine(nextLine)) {
-          index += 1;
-          break;
-        }
-
-        const nextIndent = countIndent(nextLine);
-        if (nextIndent <= baseIndent) {
-          break;
-        }
-
-        const nested = parseBlocks(lines, index, nextIndent);
-        itemBody.push(nested.html);
-        index = nested.nextIndex;
-      }
-
-      items.push("<li>" + itemBody.join("") + "</li>");
-    }
-
-    return {
-      html: "<" + listTag + ">" + items.join("") + "</" + listTag + ">",
-      nextIndex: index
-    };
-  }
-
-  function parseBlocks(lines, startIndex, baseIndent) {
-    const fragments = [];
-    let index = startIndex;
-
-    while (index < lines.length) {
-      const line = lines[index];
-
-      if (isBlankLine(line)) {
-        index += 1;
-        continue;
-      }
-
-      const indent = countIndent(line);
-      const trimmed = line.trim();
-
-      if (indent < baseIndent) {
-        break;
-      }
-
-      if (indent > baseIndent) {
-        const nested = parseBlocks(lines, index, indent);
-        fragments.push(nested.html);
-        index = nested.nextIndex;
-        continue;
-      }
-
-      if (/^#{1,6}\s+/.test(trimmed)) {
-        const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
-        const level = headingMatch[1].length;
-        fragments.push("<h" + level + ">" + parseInlineMarkdown(headingMatch[2]) + "</h" + level + ">");
-        index += 1;
-        continue;
-      }
-
-      if (isHorizontalRule(line)) {
-        fragments.push("<hr>");
-        index += 1;
-        continue;
-      }
-
-      if (isFencedCodeStart(line)) {
-        const fencedCode = parseFencedCodeBlock(lines, index, baseIndent);
-        fragments.push(fencedCode.html);
-        index = fencedCode.nextIndex;
-        continue;
-      }
-
-      if (isBlockquoteLine(line)) {
-        const blockquote = parseBlockquote(lines, index, baseIndent);
-        fragments.push(blockquote.html);
-        index = blockquote.nextIndex;
-        continue;
-      }
-
-      if (isTableStart(lines, index, baseIndent)) {
-        const table = parseTable(lines, index, baseIndent);
-        fragments.push(table.html);
-        index = table.nextIndex;
-        continue;
-      }
-
-      if (isListLine(line)) {
-        const list = parseList(lines, index, baseIndent);
-        fragments.push(list.html);
-        index = list.nextIndex;
-        continue;
-      }
-
-      const paragraph = parseParagraph(lines, index, baseIndent);
-      fragments.push(paragraph.html);
-      index = paragraph.nextIndex;
-    }
-
-    return {
-      html: fragments.join(""),
-      nextIndex: index
-    };
-  }
-
   function markdownToHtml(markdown) {
     const source = markdown || "";
     if (!source.trim()) {
@@ -699,12 +339,13 @@
     const end = savedSelectionEnd;
     const before = value.slice(0, start);
     const after = value.slice(end);
-    const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
-    const needsTrailingBreak = after.length > 0 && !after.startsWith("\n");
-    const insertedText =
-      (needsLeadingBreak ? "\n" : "") +
-      normalizedExample +
-      (needsTrailingBreak ? "\n" : "");
+    const leadingBreak = !before.length || before.endsWith("\n\n")
+      ? ""
+      : before.endsWith("\n") ? "\n" : "\n\n";
+    const trailingBreak = !after.length || after.startsWith("\n\n")
+      ? ""
+      : after.startsWith("\n") ? "\n" : "\n\n";
+    const insertedText = leadingBreak + normalizedExample + trailingBreak;
     const nextValue = before + insertedText + after;
     const nextCaret = before.length + insertedText.length;
 
@@ -733,8 +374,9 @@
     const value = writerInput.value;
     const start = savedSelectionStart;
     const end = savedSelectionEnd;
-    const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
-    let lineEnd = value.indexOf("\n", end);
+    const lineStart = start === 0 ? 0 : value.lastIndexOf("\n", start - 1) + 1;
+    const lastSelectedPosition = end > start ? end - 1 : end;
+    let lineEnd = value.indexOf("\n", lastSelectedPosition);
 
     if (lineEnd === -1) {
       lineEnd = value.length;
@@ -862,6 +504,31 @@
     }
   }
 
+  function isInsideFencedCode(position) {
+    const precedingLines = writerInput.value.slice(0, position).split("\n");
+    precedingLines.pop();
+    let fence = null;
+
+    for (const line of precedingLines) {
+      const match = line.match(/^[ \t]*(`{3,}|~{3,})(.*)$/);
+      if (!match) {
+        continue;
+      }
+
+      const marker = match[1];
+      const remainder = match[2];
+      if (fence) {
+        if (marker[0] === fence[0] && marker.length >= fence.length && !remainder.trim()) {
+          fence = null;
+        }
+      } else if (marker[0] !== "`" || !remainder.includes("`")) {
+        fence = marker;
+      }
+    }
+
+    return fence !== null;
+  }
+
   function handleMarkdownListContinuation(event) {
     if (event.key !== "Enter") {
       return;
@@ -870,7 +537,7 @@
     const selectionStart = writerInput.selectionStart;
     const selectionEnd = writerInput.selectionEnd;
 
-    if (selectionStart !== selectionEnd) {
+    if (selectionStart !== selectionEnd || isInsideFencedCode(selectionStart)) {
       return;
     }
 
@@ -941,7 +608,246 @@
     URL.revokeObjectURL(url);
   }
 
-  function buildHtmlDocument(title, bodyContent) {
+  function exportFragment(markdown, preserveCode) {
+    const template = document.createElement("template");
+    if (markdown.trim() && preserveCode && window.marked) {
+      const renderer = new window.marked.Renderer();
+      renderer.code = function (text) {
+        return "<pre><code>" + escapeHtml(text) + "</code></pre>\n";
+      };
+      template.innerHTML = window.marked.parse(markdown, {
+        gfm: true, breaks: false, headerIds: false, mangle: false, renderer: renderer
+      });
+    } else {
+      template.innerHTML = markdown.trim() ? markdownToHtml(markdown) : "";
+    }
+    return template;
+  }
+
+  function plainTextFromMarkdown(markdown) {
+    const template = exportFragment(markdown, true);
+    const ignoredTags = new Set(["SCRIPT", "STYLE", "TEMPLATE"]);
+    const blockTags = new Set(["P", "DIV", "SECTION", "ARTICLE", "ASIDE", "HEADER", "FOOTER", "MAIN", "FIGURE", "FIGCAPTION", "DETAILS", "SUMMARY", "DL", "DT", "DD"]);
+
+    function isBlock(node) {
+      return node && node.nodeType === 1 && (blockTags.has(node.tagName) || /^(H[1-6]|UL|OL|LI|PRE|TABLE|BLOCKQUOTE|HR)$/.test(node.tagName));
+    }
+
+    function children(node) {
+      return Array.from(node.childNodes).map(function (child) {
+        if (child.nodeType === 3 && !child.textContent.trim() &&
+            (isBlock(child.previousSibling) || isBlock(child.nextSibling))) {
+          return "";
+        }
+        return render(child);
+      }).join("");
+    }
+
+    function renderList(node) {
+      let number = Number(node.getAttribute("start")) || 1;
+      return Array.from(node.children).filter(function (item) {
+        return item.tagName === "LI";
+      }).map(function (item) {
+        if (item.hasAttribute("value")) {
+          number = Number(item.getAttribute("value"));
+        }
+        const prefix = node.tagName === "OL" ? String(number++) + ". " : "- ";
+        const content = children(item).replace(/^\n+|\n+$/g, "");
+        return prefix + content.split("\n").join("\n" + " ".repeat(prefix.length));
+      }).join("\n") + "\n\n";
+    }
+
+    function renderTable(node) {
+      const rows = Array.from(node.rows).map(function (row) {
+        return Array.from(row.cells).map(function (cell) {
+          return children(cell).trim().replace(/\n+/g, " / ");
+        });
+      });
+      const widths = [];
+      rows.forEach(function (row) {
+        row.forEach(function (cell, index) {
+          widths[index] = Math.max(widths[index] || 0, cell.length);
+        });
+      });
+      return rows.map(function (row) {
+        return widths.map(function (width, index) {
+          return (row[index] || "").padEnd(width);
+        }).join("  ").trimEnd();
+      }).join("\n") + "\n\n";
+    }
+
+    function render(node) {
+      if (node.nodeType === 3) {
+        return node.textContent.replace(/\s+/g, " ");
+      }
+      if (node.nodeType !== 1 || ignoredTags.has(node.tagName)) {
+        return "";
+      }
+      const tag = node.tagName;
+      if (tag === "PRE") {
+        return node.textContent + "\n\n";
+      }
+      if (tag === "CODE") {
+        return node.textContent;
+      }
+      if (tag === "BR") {
+        return "\n";
+      }
+      if (tag === "IMG") {
+        const description = node.getAttribute("alt");
+        return description ? "Image: " + description : "";
+      }
+      if (tag === "INPUT" && node.getAttribute("type") === "checkbox") {
+        return node.hasAttribute("checked") ? "Completed: " : "Not completed: ";
+      }
+      if (tag === "UL" || tag === "OL") {
+        return "\n" + renderList(node);
+      }
+      if (tag === "TABLE") {
+        return renderTable(node);
+      }
+      if (tag === "HR") {
+        return "\n\n";
+      }
+      const content = children(node);
+      if (tag === "A") {
+        const destination = node.getAttribute("href");
+        return destination && destination !== content ? content + " (" + destination + ")" : content;
+      }
+      if (/^H[1-6]$/.test(tag)) {
+        return content.trim() + "\n\n";
+      }
+      if (tag === "BLOCKQUOTE") {
+        return content.trim().split("\n").map(function (line) {
+          return "> " + line;
+        }).join("\n") + "\n\n";
+      }
+      if (blockTags.has(tag)) {
+        return content + "\n\n";
+      }
+      return content;
+    }
+
+    // Ignore parser whitespace between blocks, but keep literal code untouched.
+    const output = Array.from(template.content.childNodes).map(function (node) {
+      if (node.nodeType === 3 && !node.textContent.trim()) {
+        return "";
+      }
+      const text = render(node);
+      return node.tagName === "UL" || node.tagName === "OL" ? text.slice(1) : text;
+    }).join("");
+    if (output.endsWith("\n\n")) {
+      return output.slice(0, -1);
+    }
+    return output && !output.endsWith("\n") ? output + "\n" : output;
+  }
+
+  function addHtmlContents(template) {
+    const root = template.content;
+    const openingTitle = root.firstElementChild && root.firstElementChild.tagName === "H1"
+      ? root.firstElementChild : null;
+    const headings = Array.from(root.querySelectorAll("h1, h2, h3, h4, h5, h6")).filter(function (heading) {
+      return heading !== openingTitle && heading.textContent.trim();
+    });
+    if (!headings.length) {
+      return;
+    }
+
+    const idOwners = new Map();
+    root.querySelectorAll("[id]").forEach(function (element) {
+      if (!idOwners.has(element.id)) {
+        idOwners.set(element.id, element);
+      }
+    });
+    const usedIds = new Set(idOwners.keys());
+    const disclosure = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Table of contents";
+    disclosure.appendChild(summary);
+    const list = document.createElement("ul");
+    disclosure.appendChild(list);
+    const stack = [{ level: 0, list: list, item: null }];
+    let identifier = 0;
+
+    headings.forEach(function (heading) {
+      // Preserve authored anchors, including links already pointing to them.
+      if (!heading.id || idOwners.get(heading.id) !== heading) {
+        let id;
+        do {
+          id = "ghostwriter-heading-" + String(++identifier);
+        } while (usedIds.has(id));
+        heading.id = id;
+        usedIds.add(id);
+      }
+      const level = Number(heading.tagName.slice(1));
+      while (stack.length > 1 && level <= stack[stack.length - 1].level) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1];
+      let targetList = parent.list;
+      if (parent.item) {
+        targetList = document.createElement("ul");
+        parent.item.appendChild(targetList);
+        parent.list = targetList;
+        parent.item = null;
+      }
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = "#" + encodeURIComponent(heading.id);
+      link.textContent = heading.textContent.trim();
+      item.appendChild(link);
+      targetList.appendChild(item);
+      stack.push({ level: level, list: targetList, item: item });
+    });
+
+    if (openingTitle) {
+      openingTitle.after(disclosure);
+    } else {
+      root.prepend(disclosure);
+    }
+  }
+
+  function htmlExportStyles() {
+    return `
+:root { color-scheme: light dark; --page: #f5f0e8; --text: #1f1b18; --muted: #534a42; --accent: #23433a; --soft: #d7e4dd; --link: #0d4f8f; --border: #6b6258; --code: #ece4d6; --focus: #a83b12; }
+@media (prefers-color-scheme: dark) {
+  :root { --page: #13100f; --text: #f2ebe1; --muted: #d1c4b8; --accent: #b7d7c9; --soft: #2b342f; --link: #8dc2ff; --border: #8e8378; --code: #312926; --focus: #f28d49; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 2rem 1rem; font-family: -apple-system, system-ui, Georgia, serif; line-height: 1.6; color: var(--text); background: var(--page); overflow-wrap: break-word; }
+main { max-width: 42rem; margin: 0 auto; }
+h1, h2, h3, h4, h5, h6 { color: var(--accent); line-height: 1.25; margin: 1.5em 0 0.5em; }
+h1 { font-size: 1.8rem; } h2 { font-size: 1.5rem; } h3 { font-size: 1.3rem; } h4 { font-size: 1.15rem; } h5, h6 { font-size: 1rem; }
+p, li { margin: 0 0 0.85em; }
+a { color: var(--link); }
+img { max-width: 100%; height: auto; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 0.92em; padding: 0.1em 0.3em; border-radius: 0.25em; background: var(--code); }
+pre { padding: 0.9em 1em; border-radius: 0.6em; background: var(--code); overflow-x: auto; }
+pre code { padding: 0; background: none; }
+blockquote { margin: 0 0 1em; padding-left: 1em; border-left: 0.25em solid var(--border); color: var(--muted); }
+hr { border: 0; border-top: 1px solid var(--border); margin: 1.5em 0; }
+.table-scroll { max-width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+th, td { padding: 0.5em 0.7em; border: 1px solid var(--border); text-align: left; }
+th { background: var(--soft); }
+summary { cursor: pointer; color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+`;
+  }
+
+  function buildHtmlDocument(title, markdown, options) {
+    const template = exportFragment(markdown);
+    if (options.contents) {
+      addHtmlContents(template);
+    }
+    if (options.styled) {
+      template.content.querySelectorAll("table").forEach(function (table) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-scroll";
+        table.replaceWith(wrapper);
+        wrapper.appendChild(table);
+      });
+    }
     return [
       "<!DOCTYPE html>",
       '<html lang="en">',
@@ -949,10 +855,11 @@
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
       "<title>" + escapeHtml(title) + "</title>",
+      options.styled ? "<style>" + htmlExportStyles() + "</style>" : "",
       "</head>",
       "<body>",
       "<main>",
-      bodyContent,
+      template.innerHTML,
       "</main>",
       "</body>",
       "</html>"
@@ -960,10 +867,14 @@
   }
 
   renderButton.addEventListener("click", function () {
-    playRenderSound();
     renderDraft(true);
     if (renderedOutputRegion) {
       renderedOutputRegion.focus();
+    }
+    try {
+      playRenderSound();
+    } catch (error) {
+      console.warn("Render sound unavailable.", error);
     }
   });
 
@@ -997,13 +908,15 @@
   });
 
   downloadTextButton.addEventListener("click", function () {
-    saveFile("ghost-writer-note.txt", writerInput.value, "text/plain;charset=utf-8");
+    saveFile("ghost-writer-note.txt", plainTextFromMarkdown(writerInput.value), "text/plain;charset=utf-8");
     setStatus("Downloaded text file.");
   });
 
   downloadHtmlButton.addEventListener("click", function () {
-    const renderedHtml = markdownToHtml(writerInput.value);
-    const htmlDocument = buildHtmlDocument("Ghost Writer Export", renderedHtml);
+    const htmlDocument = buildHtmlDocument("Ghost Writer Export", writerInput.value, {
+      styled: document.getElementById("styledHtml").checked,
+      contents: document.getElementById("htmlContents").checked
+    });
     saveFile("ghost-writer-note.html", htmlDocument, "text/html;charset=utf-8");
     setStatus("Downloaded HTML file.");
   });
