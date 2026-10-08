@@ -37,15 +37,13 @@
 
 <p>Separate paragraphs with an empty line. Press Enter twice between ordinary blocks of text to render them as separate paragraphs. Pressing Enter once within ordinary text keeps it in the same paragraph.</p>
 <p>To start a new line within the same paragraph, end the preceding line with two spaces or a backslash, then press Enter. This creates a line break rather than a new paragraph.</p>
-<p>Headings, lists, and other Markdown blocks have their own rules. Blank lines around blocks help keep your source clear and avoid unintended formatting.</p>
+
 <h3>Headings</h3>
 <p>Headings use one to six number signs.</p>
 <button type="button" class="example-button" data-example="# Heading 1" data-announcement="Heading added.">Add heading</button>
-<ul role="list" class="reference-example-list">
-<li><code># Heading 1</code></li>
-<li><code>## Heading 2</code></li>
-<li><code>### Heading 3</code></li>
-</ul>
+<pre class="reference-example"><code># Heading 1</code></pre>
+<pre class="reference-example"><code>## Heading 2</code></pre>
+<pre class="reference-example"><code>### Heading 3</code></pre>
 <h3>Lists</h3>
 <p>Use a dash or an asterisk for bullet lists. Numbered lists can start with any number, and pressing Enter continues the list automatically. Nested lists stay indented, and pressing Enter again on an empty list line ends the list.</p>
 <p>Indent a nested list to align its marker with the start of the parent item’s text. Use two spaces under <code>* </code>, three under <code>1. </code>, and four under <code>10. </code>.</p>
@@ -53,73 +51,61 @@
 <button type="button" class="example-button" data-example="* First bullet\n* Second bullet" data-announcement="Unordered list added.">Add unordered list</button>
 <button type="button" class="example-button" data-example="1. First numbered item\n2. Second numbered item" data-announcement="Numbered list added.">Add numbered list</button>
 </div>
-<ul role="list" class="reference-example-list">
-<li><code>* First bullet</code></li>
-<li><code>  * Nested bullet</code></li>
-<li><code>1. First numbered item</code></li>
-<li><code>   1. Nested numbered item</code></li>
-</ul>
+<pre class="reference-example"><code>* First bullet
+  * Nested bullet</code></pre>
+<pre class="reference-example"><code>1. First numbered item
+   1. Nested numbered item</code></pre>
 <p>Note: Lettered lists are not supported by Markdown, but can be created using HTML directly in the editor.</p>
 <h3>Emphasis</h3>
 <p>For emphasis, wrap text in single or double markers.</p>
 <button type="button" class="example-button" data-example="This is **bold** and *italic* text." data-announcement="Emphasis example added.">Add emphasis</button>
-<ul role="list" class="reference-example-list">
-<li><code>*italic*</code></li>
-<li><code>_italic_</code></li>
-<li><code>**bold**</code></li>
-<li><code>__bold__</code></li>
-<li><code>~~strikethrough~~</code></li>
-<li><code>`inline code`</code></li>
-</ul>
+<pre class="reference-example"><code>*italic*</code></pre>
+<pre class="reference-example"><code>_italic_</code></pre>
+<pre class="reference-example"><code>**bold**</code></pre>
+<pre class="reference-example"><code>__bold__</code></pre>
+<pre class="reference-example"><code>~~strikethrough~~</code></pre>
+<pre class="reference-example"><code>`inline code`</code></pre>
 <h3>Inline Links And Images</h3>
 <p>Links and images use brackets followed by parentheses.</p>
 <div class="reference-button-row">
 <button type="button" class="example-button" data-example="[Marconius](https://marconius.com)" data-announcement="Inline link added.">Add link</button>
 <button type="button" class="example-button" data-example="![Alt text](https://example.com/image.jpg)" data-announcement="Inline image added.">Add image</button>
 </div>
-<ul role="list" class="reference-example-list">
-<li><code>[Marconius](https://marconius.com)</code></li>
-<li><code>![Alt text](https://example.com/image.jpg)</code></li>
-</ul>
+<pre class="reference-example"><code>[Marconius](https://marconius.com)</code></pre>
+<pre class="reference-example"><code>![Alt text](https://example.com/image.jpg)</code></pre>
 <h3>Reference Links And Images</h3>
 <p>Reference links let you keep the visible text separate from the URL definition.</p>
 <div class="reference-button-row">
 <button type="button" class="example-button" data-example="[Marconius][home]\n\n[home]: https://marconius.com" data-announcement="Reference link added.">Add reference link</button>
 <button type="button" class="example-button" data-example="![Ghost logo][ghost]\n\n[ghost]: https://example.com/ghost.png" data-announcement="Reference image added.">Add reference image</button>
 </div>
-<ul role="list" class="reference-example-list">
-<li><code>[Marconius][home]</code></li>
-<li><code>[home]: https://marconius.com</code></li>
-<li><code>![Ghost logo][ghost]</code></li>
-<li><code>[ghost]: https://example.com/ghost.png</code></li>
-</ul>
+<pre class="reference-example"><code>[Marconius][home]
+
+[home]: https://marconius.com</code></pre>
+<pre class="reference-example"><code>![Ghost logo][ghost]
+
+[ghost]: https://example.com/ghost.png</code></pre>
 <h3>Blockquotes And Rules</h3>
 <p>Blockquotes begin with a greater-than sign. Horizontal rules use three dashes, asterisks, or underscores.</p>
 <div class="reference-button-row">
 <button type="button" class="example-button" data-example="&gt; This is a blockquote" data-announcement="Blockquote added.">Add blockquote</button>
 <button type="button" class="example-button" data-example="---" data-announcement="Horizontal rule added.">Add rule</button>
 </div>
-<ul role="list" class="reference-example-list">
-<li><code>&gt; This is a blockquote</code></li>
-<li><code>---</code></li>
-</ul>
+<pre class="reference-example"><code>&gt; This is a blockquote</code></pre>
+<pre class="reference-example"><code>---</code></pre>
 <h3>Code Blocks</h3>
 <p>Fenced code blocks use three backticks before and after the code, with an optional language name on the opening fence.</p>
 <button type="button" class="example-button" data-example="```js\nconst note = &quot;Ghost Writer&quot;;\n```" data-announcement="Code block added.">Add code block</button>
-<ul role="list" class="reference-example-list">
-<li><code>```js</code></li>
-<li><code>const note = "Ghost Writer";</code></li>
-<li><code>```</code></li>
-</ul>
+<pre class="reference-example"><code>```js
+const note = "Ghost Writer";
+```</code></pre>
 <h3>Tables</h3>
 <p>Tables use pipes between cells and a divider row beneath the headers.</p>
 <button type="button" class="example-button" data-example="| Feature | Syntax |\n| --- | --- |\n| Bold | **text** |\n| Link | [text](https://example.com) |" data-announcement="Table added.">Add table</button>
-<ul role="list" class="reference-example-list">
-<li><code>| Feature | Syntax |</code></li>
-<li><code>| --- | --- |</code></li>
-<li><code>| Bold | **text** |</code></li>
-<li><code>| Link | [text](https://example.com) |</code></li>
-</ul>
+<pre class="reference-example"><code>| Feature | Syntax |
+| --- | --- |
+| Bold | **text** |
+| Link | [text](https://example.com) |</code></pre>
 <h3>HTML</h3>
 <p>You can also write HTML directly in the editor when you need markup that markdown alone does not cover.</p>
 <button type="button" class="example-button" data-example="&lt;aside&gt;Helpful note written in HTML.&lt;/aside&gt;" data-announcement="HTML example added.">Add HTML</button>
@@ -175,8 +161,14 @@
 <button type="button" id="downloadText">Download Plain Text</button>
 <details class="html-export">
 <summary>HTML</summary>
-<label><input type="checkbox" id="styledHtml" checked> Styled document</label>
-<label><input type="checkbox" id="htmlContents"> Table of contents</label>
+<div class="export-option">
+<input type="checkbox" id="styledHtml" checked>
+<label for="styledHtml">Styled document</label>
+</div>
+<div class="export-option">
+<input type="checkbox" id="htmlContents">
+<label for="htmlContents">Table of contents</label>
+</div>
 <button type="button" id="downloadHtml">Download HTML</button>
 </details>
 </div>

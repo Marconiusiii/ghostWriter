@@ -191,8 +191,15 @@ textarea {
   color: var(--accent);
 }
 
-.html-export label {
+.export-option {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.export-option label {
+  margin: 0;
   font-weight: 400;
 }
 
@@ -290,14 +297,11 @@ button {
   color: var(--text);
 }
 
-.reference-example-list {
+.reference-example {
   margin: 0 0 1rem;
-  padding: 0;
-  list-style: none;
-}
-
-.reference-example-list li {
-  margin: 0 0 0.55rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 0.7rem;
@@ -457,7 +461,7 @@ select:focus-visible,
     background: #312926;
   }
 
-  .reference-example-list li,
+  .reference-example,
   #renderedOutput pre {
     background: rgba(28, 24, 22, 0.96);
   }

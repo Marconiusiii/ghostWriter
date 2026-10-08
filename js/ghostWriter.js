@@ -17,6 +17,7 @@
   let ghostPasses = 0;
   let savedSelectionStart = 0;
   let savedSelectionEnd = 0;
+  let pendingListReturn = null;
 
   function isSpookinessOn() {
     return !spookinessToggle || spookinessToggle.checked;
@@ -529,71 +530,66 @@
     return fence !== null;
   }
 
-  function handleMarkdownListContinuation(event) {
-    if (event.key !== "Enter") {
+  function prepareMarkdownListReturn(event) {
+    pendingListReturn = null;
+    if (event.isComposing ||
+        (event.inputType !== "insertLineBreak" && event.inputType !== "insertParagraph")) {
       return;
     }
 
-    const selectionStart = writerInput.selectionStart;
-    const selectionEnd = writerInput.selectionEnd;
-
-    if (selectionStart !== selectionEnd || isInsideFencedCode(selectionStart)) {
+    const start = writerInput.selectionStart;
+    if (start !== writerInput.selectionEnd || isInsideFencedCode(start)) {
       return;
     }
 
     const value = writerInput.value;
-    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-    const lineEndIndex = value.indexOf("\n", selectionStart);
-    const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
-    const currentLine = value.slice(lineStart, lineEnd);
-    const beforeCursor = value.slice(0, selectionStart);
-    const afterCursor = value.slice(selectionEnd);
-    const unorderedMatch = currentLine.match(/^([ \t]*)([-*])(\s+)(.*)$/);
-    const orderedMatch = currentLine.match(/^([ \t]*)(\d+)\.(\s+)(.*)$/);
-    let nextValue = value;
-    let caretPosition = selectionStart;
-
-    if (!unorderedMatch && !orderedMatch) {
+    const lineStart = start === 0 ? 0 : value.lastIndexOf("\n", start - 1) + 1;
+    const nextBreak = value.indexOf("\n", start);
+    const lineEnd = nextBreak === -1 ? value.length : nextBreak;
+    const line = value.slice(lineStart, lineEnd);
+    const match = line.match(/^([ \t]*)([-*]|\d+\.)([ \t]+)(.*)$/);
+    if (!match) {
       return;
     }
 
-    event.preventDefault();
+    const marker = /\d/.test(match[2])
+      ? String(Number(match[2].slice(0, -1)) + 1) + "."
+      : match[2];
+    pendingListReturn = {
+      expectedValue: value.slice(0, start) + "\n" + value.slice(start),
+      expectedCaret: start + 1,
+      lineStart: lineStart,
+      lineEnd: lineEnd,
+      empty: !match[4].trim(),
+      prefix: match[1] + marker + match[3]
+    };
+    // Safari performs the original Return. Do not cancel this event.
+  }
 
-    if (unorderedMatch) {
-      const indent = unorderedMatch[1];
-      const marker = unorderedMatch[2];
-      const spacing = unorderedMatch[3];
-      const content = unorderedMatch[4];
-
-      if (!content.trim()) {
-        nextValue = value.slice(0, lineStart) + value.slice(lineEnd);
-        caretPosition = lineStart;
-      } else {
-        const nextPrefix = "\n" + indent + marker + spacing;
-        nextValue = beforeCursor + nextPrefix + afterCursor;
-        caretPosition = selectionStart + nextPrefix.length;
-      }
+  function finishMarkdownListReturn(event) {
+    const plan = pendingListReturn;
+    pendingListReturn = null;
+    if (!plan || event.isComposing ||
+        (event.inputType !== "insertLineBreak" && event.inputType !== "insertParagraph") ||
+        writerInput.value !== plan.expectedValue ||
+        writerInput.selectionStart !== plan.expectedCaret ||
+        writerInput.selectionEnd !== plan.expectedCaret) {
+      return;
     }
 
-    if (orderedMatch) {
-      const indent = orderedMatch[1];
-      const number = Number(orderedMatch[2]);
-      const spacing = orderedMatch[3];
-      const content = orderedMatch[4];
-
-      if (!content.trim()) {
-        nextValue = value.slice(0, lineStart) + value.slice(lineEnd);
-        caretPosition = lineStart;
-      } else {
-        const nextPrefix = "\n" + indent + String(number + 1) + "." + spacing;
-        nextValue = beforeCursor + nextPrefix + afterCursor;
-        caretPosition = selectionStart + nextPrefix.length;
+    if (plan.empty) {
+      // Keep Safari's newline and its caret on the following line.
+      // If Return split the empty item, clear its remaining text first.
+      if (plan.expectedCaret <= plan.lineEnd) {
+        writerInput.setRangeText("", plan.expectedCaret, plan.lineEnd + 1, "preserve");
       }
+      if (plan.expectedCaret - 1 > plan.lineStart) {
+        writerInput.setRangeText("", plan.lineStart, plan.expectedCaret - 1, "preserve");
+      }
+    } else {
+      writerInput.setRangeText(plan.prefix, plan.expectedCaret, plan.expectedCaret, "end");
     }
-
-    writerInput.value = nextValue;
-    writerInput.selectionStart = caretPosition;
-    writerInput.selectionEnd = caretPosition;
+    saveSelectionRange();
   }
 
   function saveFile(filename, text, type) {
@@ -878,7 +874,8 @@ summary { cursor: pointer; color: var(--accent); }
     }
   });
 
-  writerInput.addEventListener("keydown", handleMarkdownListContinuation);
+  writerInput.addEventListener("beforeinput", prepareMarkdownListReturn);
+  writerInput.addEventListener("input", finishMarkdownListReturn);
   writerInput.addEventListener("keydown", handleIndentationShortcuts);
   writerInput.addEventListener("select", saveSelectionRange);
   writerInput.addEventListener("keyup", saveSelectionRange);
@@ -893,6 +890,7 @@ summary { cursor: pointer; color: var(--accent); }
   });
 
   writerInput.addEventListener("blur", function () {
+    pendingListReturn = null;
     saveSelectionRange();
   });
 
